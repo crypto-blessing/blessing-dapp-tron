@@ -19,15 +19,9 @@ import Chip from '@mui/material/Chip';
 import Link from '@mui/material/Link';
 import Box from '@mui/material/Box'
 import {TRON_ICON, CBT_ICON} from 'src/@core/components/wallet/crypto-icons'
-import BigNumber from 'bignumber.js'
-import {amountShow} from 'src/@core/utils/amount'
 
 
 import { useEffect, useState } from "react"
-
-import { ethers } from 'ethers';
-import { useWeb3React } from "@web3-react/core"
-import {CBTContractAddress, CBNFTContractAddress} from 'src/@core/components/wallet/address'
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
     [`&.${tableCellClasses.head}`]: {

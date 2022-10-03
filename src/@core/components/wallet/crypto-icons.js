@@ -19,7 +19,7 @@ export const TRON_ICON = () => {
     return (
 
         <Icon classes={{root: classes.iconRoot}}>
-            <img className={classes.imageIcon} src="https://cryptologos.cc/logos/tron-trx-logo.svg?v=023" alt='TRX'/>
+            <img className={classes.imageIcon} src="/images/cryptos/tron-trx-logo.svg" alt='TRX'/>
         </Icon>
 
     );

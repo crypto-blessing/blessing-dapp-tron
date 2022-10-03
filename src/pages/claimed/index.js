@@ -14,9 +14,6 @@ import TablePagination from '@mui/material/TablePagination'
 import Box from '@mui/material/Box'
 import {TRON_ICON} from 'src/@core/components/wallet/crypto-icons'
 import Chip from '@mui/material/Chip'
-import { ethers } from 'ethers'
-import { useWeb3React } from "@web3-react/core"
-
 
 
 import {cryptoBlessingAdreess} from 'src/@core/components/wallet/address'
@@ -49,28 +46,25 @@ const BlessingClaimed = () => {
         setPage(0)
     }
 
-
-    const { active, account, chainId } = useWeb3React()
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
     async function fetchMyClaimedBlessings() {
-        if (active && chainId != 'undefined' && typeof window.ethereum !== 'undefined') {
-            const provider = new ethers.providers.Web3Provider(window.ethereum)
-            const cbContract = new ethers.Contract(cryptoBlessingAdreess(chainId), CryptoBlessing.abi, provider.getSigner())
-            try {
-                const blessings = await cbContract.getMyClaimedBlessings()
-                setBlessings(transClaimBlesingsFromWalletBlessings(blessings))
-            } catch (err) {
-                console.log("Error: ", err)
-            }
+        // if (active && chainId != 'undefined' && typeof window.ethereum !== 'undefined') {
+        //     const provider = new ethers.providers.Web3Provider(window.ethereum)
+        //     const cbContract = new ethers.Contract(cryptoBlessingAdreess(chainId), CryptoBlessing.abi, provider.getSigner())
+        //     try {
+        //         const blessings = await cbContract.getMyClaimedBlessings()
+        //         setBlessings(transClaimBlesingsFromWalletBlessings(blessings))
+        //     } catch (err) {
+        //         console.log("Error: ", err)
+        //     }
             
-        }    
+        // }    
     }
 
     useEffect(() => {
         fetchMyClaimedBlessings()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [chainId, account])
+    }, [])
 
     return (
         <Grid container spacing={6}>
