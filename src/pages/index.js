@@ -15,14 +15,22 @@ const Market = () => {
     
     const [categoriesWithItems, setCategoriesWithItems] = useState([])
     const [account, setAccount] = useState(null)
+    const [TRXAmount, setTRXAmount] = useState(0)
 
 
     useEffect(() => {
         const connectWalletOnPageLoad = async () => {
-            const res = await window.tronLink.request({method: 'tron_requestAccounts'})
-            if (res.code === 200) {
-                setAccount(window.tronWeb.defaultAddress.base58)
-            }
+
+            var obj = setInterval(async ()=>{
+                if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+                    clearInterval(obj)
+                    setAccount(window.tronWeb.defaultAddress.base58)
+                    window.tronWeb.trx.getBalance(window.tronWeb.defaultAddress.base58).then(result => {
+                        setTRXAmount(result / 1000000)
+                    })
+                }
+              }, 10)
+
             fetch('/api/items')
             .then((res) => res.json())
             .then((data) => {
@@ -48,7 +56,7 @@ const Market = () => {
                     </Grid>
                     {item.items?.map((blessing) => (
                         <Grid key={blessing.image} item xs={12} md={2}>
-                            <BlessingCard2 blessing={blessing} account={account} />
+                            <BlessingCard2 blessing={blessing} account={account} TRXAmount={TRXAmount} />
                         </Grid>
                     ))}
                     

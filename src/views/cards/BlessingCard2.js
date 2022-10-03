@@ -126,7 +126,7 @@ const BlessingCard2 = (props) => {
   const handleBlessingCaption = (tokenAmount, claimQuantity, claimType) => {
     let payCaption = '', claimCaption = '';
     if (tokenAmount > 0 && claimQuantity > 0) {
-      let totalPay = (claimQuantity * props.blessing.price) + parseFloat(tokenAmount)
+      let totalPay = (claimQuantity * props.blessing.trx_price) + parseFloat(tokenAmount)
       payCaption = `You will pay ${totalPay.toFixed(2)} TRX. `
     } else {
       payCaption = ''
@@ -146,7 +146,7 @@ const BlessingCard2 = (props) => {
   }
 
   const checkFormValidate = () => {
-    if (tokenAmount <= 0 || BigInt((claimQuantity * props.blessing.price + parseFloat(tokenAmount)) * 10 ** 18) > trxAmount) {
+    if (tokenAmount <= 0 || BigInt((claimQuantity * props.blessing.trx_price + parseFloat(tokenAmount)) * 10 ** 18) > trxAmount) {
       setAlertMsg('You have insufficient TRX balance.')
       setAlertOpen(true);
 
@@ -285,7 +285,7 @@ const BlessingCard2 = (props) => {
           }}
         >
           <Typography variant='caption'>{props.blessing.title}</Typography>
-          <Chip size="small" variant="outlined" color="warning" label={props.blessing.price} />
+          <Chip size="small" variant="outlined" color="warning" label={props.blessing.trx_price} />
         </Box>
       </CardContent>
       {props.account ?
@@ -344,7 +344,7 @@ const BlessingCard2 = (props) => {
                 </CardContent>
                 <CardActions className='card-action-dense'>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                  <Button startIcon={<AttachMoneyIcon />} variant='outlined' color='warning'>{props.blessing.price} TRX</Button>
+                  <Button startIcon={<AttachMoneyIcon />} variant='outlined' color='warning'>{props.blessing.trx_price} TRX</Button>
                   </Box>
                 </CardActions>
               </Grid>
@@ -358,7 +358,7 @@ const BlessingCard2 = (props) => {
                     <TextField
                       onChange={handleTokenAmountChange}
                       fullWidth
-                      label={'How much TRX do you want to send?(wallet: ' + parseFloat(ethers.utils.formatEther(trxAmount)).toFixed(2) + ' TRX)'}
+                      label={'How much TRX do you want to send?(wallet: ' + parseFloat(props.TRXAmount).toFixed(2) + ' TRX)'}
                       placeholder='10'
                       type='number'
                       InputProps={{
