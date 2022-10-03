@@ -39,10 +39,6 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import {simpleShow, cryptoBlessingAdreess} from 'src/@core/components/wallet/address'
 import {encode} from 'src/@core/utils/cypher'
 
-
-import { ethers } from 'ethers';
-import { useWeb3React } from "@web3-react/core"
-
 const style = {
   position: 'absolute',
   top: '50%',
@@ -68,8 +64,6 @@ const StyledGrid = styled(Grid)(({ theme }) => ({
 }))
 
 const BlessingCard2 = (props) => {
-
-  const { active, chainId, account } = useWeb3React()
 
   const [open, setOpen] = useState(false);
   const [tokenAmount, setTokenAmount] = useState(0);
@@ -258,19 +252,6 @@ const BlessingCard2 = (props) => {
     setAlertMsg('')
     setAlertOpen(false)
   }
-
-  const [trxAmount, setTrxAmount] = useState(0)
-
-  async function fetchTRXAmount() {
-  }
-
-  useEffect(() => {
-    if (open) {
-      fetchTRXAmount()
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chainId, account, open])
-
 
   return (
     <Card>
