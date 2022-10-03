@@ -21,15 +21,15 @@ const Market = () => {
     useEffect(() => {
         const connectWalletOnPageLoad = async () => {
 
-            var obj = setInterval(async ()=>{
-                if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
-                    clearInterval(obj)
-                    setAccount(window.tronWeb.defaultAddress.base58)
-                    window.tronWeb.trx.getBalance(window.tronWeb.defaultAddress.base58).then(result => {
-                        setTRXAmount(result / 1000000)
-                    })
-                }
-              }, 10)
+            // var obj = setInterval(async ()=>{
+            //     if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+            //         clearInterval(obj)
+            //         setAccount(window.tronWeb.defaultAddress.base58)
+            //         window.tronWeb.trx.getBalance(window.tronWeb.defaultAddress.base58).then(result => {
+            //             setTRXAmount(result / 1000000)
+            //         })
+            //     }
+            //   }, 10)
 
             fetch('/api/items')
             .then((res) => res.json())
