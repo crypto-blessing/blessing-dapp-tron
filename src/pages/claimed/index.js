@@ -12,7 +12,7 @@ import TableCell from '@mui/material/TableCell'
 import TableContainer from '@mui/material/TableContainer'
 import TablePagination from '@mui/material/TablePagination'
 import Box from '@mui/material/Box'
-import {BUSD_ICON} from 'src/@core/components/wallet/crypto-icons'
+import {TRON_ICON} from 'src/@core/components/wallet/crypto-icons'
 import Chip from '@mui/material/Chip'
 import { ethers } from 'ethers'
 import { useWeb3React } from "@web3-react/core"
@@ -115,7 +115,7 @@ const BlessingClaimed = () => {
                                         : ''}
 
                                         {column.type === 'amount' ?
-                                        <Chip variant="outlined" color="warning" label={value} icon={<BUSD_ICON />} />
+                                        <Chip variant="outlined" color="warning" label={value} icon={<TRON_ICON />} />
                                         : ''}
 
                                         {column.type === 'progress' ?

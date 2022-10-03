@@ -16,7 +16,7 @@ import Grid from '@mui/material/Grid'
 import Typography from '@mui/material/Typography'
 import Avatar from '@mui/material/Avatar'
 import Button from '@mui/material/Button'
-import {BUSD_ICON, CBT_ICON} from 'src/@core/components/wallet/crypto-icons'
+import {TRX_ICON, CBT_ICON} from 'src/@core/components/wallet/crypto-icons'
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import Chip from '@mui/material/Chip'
 import Stack from '@mui/material/Stack';
@@ -210,7 +210,7 @@ const ClaimPage = () => {
   const copyClaimLink = () => {
     const privateKey = localStorage.getItem('my_blessing_claim_key_' + blessingSended.blessingID)
 
-    navigator.clipboard.writeText(`[CryptoBlessing] ${blessingInDB.title} | ${blessingInDB.description}. Claim your BUSD & blessing NFT here: https://cryptoblessing.app/claim?sender=${encode(sender)}&blessing=${encode(blessingSended.blessingID)}&key=${encode(privateKey)}`)
+    navigator.clipboard.writeText(`[CryptoBlessing] ${blessingInDB.title} | ${blessingInDB.description}. Claim your TRX & blessing NFT here: https://cryptoblessing.app/claim?sender=${encode(sender)}&blessing=${encode(blessingSended.blessingID)}&key=${encode(privateKey)}`)
     handleAlertOpen('Claim Link Copied!')
   }
 
@@ -329,7 +329,7 @@ const ClaimPage = () => {
             {blessingInDB.description}
             </Typography>
             <Stack direction="row" spacing={1}>
-              <Chip variant="outlined" color="warning" label={claimedAmount + '/' + (blessingSended && blessingSended.tokenAmount ? ethers.utils.formatEther(blessingSended.tokenAmount) : 0) + ' BUSD'} icon={<BUSD_ICON />} />
+              <Chip variant="outlined" color="warning" label={claimedAmount + '/' + (blessingSended && blessingSended.tokenAmount ? ethers.utils.formatEther(blessingSended.tokenAmount) : 0) + ' TRX'} icon={<TRON_ICON />} />
               <Chip variant="outlined" color="primary" label={claimList.length + '/' + (blessingSended && blessingSended.claimQuantity ? blessingSended?.claimQuantity?.toString() : 0) + ' Blessings'} icon={<AccountCircleIcon />} />
             </Stack>
           </CardContent>
@@ -370,7 +370,7 @@ const ClaimPage = () => {
                       <StyledTableCell>{row.time}</StyledTableCell>
                       <StyledTableCell align='right'>
                         <Stack direction="row" spacing={1}>
-                          <Chip variant="outlined" color="warning" label={parseFloat(row.amount).toFixed(2)} icon={<BUSD_ICON />} />
+                          <Chip variant="outlined" color="warning" label={parseFloat(row.amount).toFixed(2)} icon={<TRON_ICON />} />
                           <Chip
                             avatar={<Avatar alt="CryptoBlessing" src={blessingInDB.cdn_path + blessingInDB.image} />}
                             label="1"
@@ -531,7 +531,7 @@ const ClaimPage = () => {
                 Congrats!!! You have already claimed this blessing successfully. 
               </Typography>
               <Typography variant='caption' color='error'>
-                You just claimed your BUSD and one more NFT, You can check out in your wallet.
+                You just claimed your TRX and one more NFT, You can check out in your wallet.
               </Typography>
             </CardContent>
             <CardActions

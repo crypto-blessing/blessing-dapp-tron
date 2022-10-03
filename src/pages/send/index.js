@@ -31,18 +31,16 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { green } from '@mui/material/colors';
 
 // ** Icons Imports
-import {BUSD_ICON} from 'src/@core/components/wallet/crypto-icons'
+import {TRON_ICON} from 'src/@core/components/wallet/crypto-icons'
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import {decode} from 'src/@core/utils/cypher'
 
-import {getProviderUrl, simpleShow, cryptoBlessingAdreess, BUSDContractAddress} from 'src/@core/components/wallet/address'
+import {simpleShow, cryptoBlessingAdreess} from 'src/@core/components/wallet/address'
 import {encode} from 'src/@core/utils/cypher'
 
 
 import { ethers } from 'ethers';
 import { useWeb3React } from "@web3-react/core"
-import CryptoBlessing from 'src/artifacts/contracts/CryptoBlessing.sol/CryptoBlessing.json'
-import BUSDContract from 'src/artifacts/contracts/TestBUSD.sol/BUSD.json'
 
 import { useRouter } from 'next/router'
 
@@ -95,8 +93,6 @@ const BlessingSendPage = () => {
     const [claimType, setClaimType] = useState(-1);
     const handleOpen = () => setOpen(true);
 
-    const [needApproveBUSDAmount, setNeedApproveBUSDAmount] = useState(BigInt(0))
-
     const [alertMsg, setAlertMsg] = useState('');
     const [alertOpen, setAlertOpen] = useState(false);
 
@@ -146,15 +142,14 @@ const BlessingSendPage = () => {
         let payCaption = '', claimCaption = '';
         if (tokenAmount > 0 && claimQuantity > 0) {
         let totalPay = (claimQuantity * blessingInDB.price) + parseFloat(tokenAmount)
-        refreshBUSDApprove(totalPay)
-        payCaption = `You will pay ${totalPay.toFixed(2)} BUSD. `
+        payCaption = `You will pay ${totalPay.toFixed(2)} TRX. `
         } else {
         payCaption = ''
         }
         if (payCaption !== '') {
         if (claimType > -1) {
             if (claimType === 0) {
-            claimCaption = `Your friends will claim ${(tokenAmount / claimQuantity).toFixed(2)}(tax in) BUSD and one more NFT. `
+            claimCaption = `Your friends will claim ${(tokenAmount / claimQuantity).toFixed(2)}(tax in) TRX and one more NFT. `
             } else if (claimType === 1) {
             claimCaption = `Your friends will claim a random amount and one more NFT.`
             }
@@ -165,63 +160,27 @@ const BlessingSendPage = () => {
         setBlessingCaption(payCaption + claimCaption)
     }
 
-    const refreshBUSDApprove = (totalPay) => {
-        const provider = new ethers.providers.Web3Provider(window.ethereum)
-        const busdContract = new ethers.Contract(BUSDContractAddress(chainId), BUSDContract.abi, provider.getSigner())
-        provider.getSigner().getAddress().then(async (address) => {
-        try {
-            const allowance = await busdContract.allowance(address, cryptoBlessingAdreess(chainId))
-            const busdAllownce = ethers.utils.formatEther(allowance)
-            console.log('totalBUSDArppoveAmount', totalPay)
-            console.log('busdAllownce', busdAllownce)
-            setNeedApproveBUSDAmount(BigInt((totalPay - busdAllownce) * 10 ** 18))
-        } catch (err) {
-            console.log("Error: ", err)
-        }
-        })
-    }
-
     const checkFormValidate = () => {
-        if (tokenAmount <= 0 || BigInt((claimQuantity * blessingInDB.price + parseFloat(tokenAmount)) * 10 ** 18) > busdAmount) {
-        setAlertMsg('You have insufficient BUSD balance.')
+        if (tokenAmount <= 0 || BigInt((claimQuantity * blessingInDB.price + parseFloat(tokenAmount)) * 10 ** 18) > trxAmount) {
+        setAlertMsg('You have insufficient TRX balance.')
         setAlertOpen(true);
 
         return false
         }
         if (claimQuantity <= 0 || claimQuantity > 13) {
-        setAlertMsg('You only have up to 13 friends to collect your BUSD')
+        setAlertMsg('You only have up to 13 friends to collect your TRX')
         setAlertOpen(true);
 
         return false
         }
         if (claimType === -1) {
-        setAlertMsg('Pls choose the way your friend will claim your BUSD')
+        setAlertMsg('Pls choose the way your friend will claim your TRX')
         setAlertOpen(true);
 
         return false
         }
 
         return true
-    }
-
-    async function approveBUSD() {
-        if (!checkFormValidate()) {
-        return
-        }
-        setApproving(true)
-        const provider = new ethers.providers.Web3Provider(window.ethereum)
-        const busdContract = new ethers.Contract(BUSDContractAddress(chainId), BUSDContract.abi, provider.getSigner())
-        try {
-        const tx = await busdContract.approve(cryptoBlessingAdreess(chainId), needApproveBUSDAmount)
-        await tx.wait()
-        refreshBUSDApprove((claimQuantity * blessingInDB.price) + parseFloat(tokenAmount))
-        setApproving(false)
-        setLoading(true)
-        } catch (e) {
-        console.log(e)
-        setApproving(false)
-        }
-        
     }
 
     async function storeKeys(blessingKeypair, claimKeys) {
@@ -285,7 +244,7 @@ const BlessingSendPage = () => {
         localStorage.setItem('my_blessing_claim_key_' + blessingKeypair.address, blessingKeypair.privateKey)
         setOpen(false)
         setSendSuccessOpen(true)
-        fetchBUSDAmount()
+        fetchTRXAmount()
         setLoading(true)
         } catch (e) {
         console.log(e)
@@ -300,7 +259,7 @@ const BlessingSendPage = () => {
         const provider = new ethers.providers.Web3Provider(window.ethereum)
         provider.getSigner().getAddress().then(async (address) => {
         const privateKey = localStorage.getItem('my_blessing_claim_key_' + blessingKeypairAddress)
-        navigator.clipboard.writeText(`[CryptoBlessing] ${blessingInDB.title} | ${blessingInDB.description}. Claim your BUSD & blessing NFT here: https://cryptoblessing.app/claim?sender=${encode(address)}&blessing=${encode(blessingKeypairAddress)}&key=${encode(privateKey)}`)
+        navigator.clipboard.writeText(`[CryptoBlessing] ${blessingInDB.title} | ${blessingInDB.description}. Claim your TRX & blessing NFT here: https://cryptoblessing.app/claim?sender=${encode(address)}&blessing=${encode(blessingKeypairAddress)}&key=${encode(privateKey)}`)
         })
     }
 
@@ -315,25 +274,14 @@ const BlessingSendPage = () => {
         setAlertOpen(false)
     }
 
-    const [busdAmount, setBusdAmount] = useState(0)
+    const [trxAmount, setTrxAmount] = useState(0)
 
-    async function fetchBUSDAmount() {
-        if (active && chainId != 'undefined' && typeof window.ethereum !== 'undefined') {
-            const provider = new ethers.providers.Web3Provider(window.ethereum)
-            const busdContract = new ethers.Contract(BUSDContractAddress(chainId), BUSDContract.abi, provider.getSigner())
-            provider.getSigner().getAddress().then(async (address) => {
-                try {
-                    setBusdAmount(await busdContract.balanceOf(address))
-                } catch (err) {
-                    console.log("Error: ", err)
-                }
-            })
-            
-        }    
+    async function fetchTRXAmount() {
+
     }
 
     useEffect(() => {
-        fetchBUSDAmount()
+        fetchTRXAmount()
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [chainId, account])
 
@@ -375,7 +323,7 @@ const BlessingSendPage = () => {
                         </CardContent>
                         <CardActions className='card-action-dense'>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                        <Button startIcon={<AttachMoneyIcon />} variant='outlined' color='warning'>{blessingInDB.price} BUSD</Button>
+                        <Button startIcon={<AttachMoneyIcon />} variant='outlined' color='warning'>{blessingInDB.price} TRX</Button>
                         </Box>
                         </CardActions>
                     </Grid>
@@ -389,18 +337,17 @@ const BlessingSendPage = () => {
                             <TextField
                             onChange={handleTokenAmountChange}
                             fullWidth
-                            label={'How much BUSD do you want to send?(wallet: ' + parseFloat(ethers.utils.formatEther(busdAmount)).toFixed(2) + ' BUSD)'}
+                            label={'How much TRX do you want to send?(wallet: ' + parseFloat(ethers.utils.formatEther(trxAmount)).toFixed(2) + ' TRX)'}
                             placeholder='10'
                             type='number'
                             InputProps={{
                                 startAdornment: (
                                 <InputAdornment position='start'>
-                                    <BUSD_ICON />
+                                    <TRON_ICON />
                                 </InputAdornment>
                                 )
                             }}
                             />
-                            <Typography variant='caption'>help? <Link target='_blank' href='https://pancakeswap.finance/swap?outputCurrency=0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56'>PancakeSwap</Link> for BUSD</Typography>
                         </Grid>
                         
                         <Grid item xs={12}>
@@ -421,7 +368,7 @@ const BlessingSendPage = () => {
                         </Grid>
                         <Grid item xs={12}>
                             <FormControl>
-                            <FormLabel id="demo-row-radio-buttons-group-label">The way they claim your BUSD?</FormLabel>
+                            <FormLabel id="demo-row-radio-buttons-group-label">The way they claim your TRX?</FormLabel>
                             <RadioGroup
                                 onChange={handleClaimTypeChange}
                                 row
@@ -453,28 +400,6 @@ const BlessingSendPage = () => {
                     <Button onClick={handleClose} size='large' color='secondary' variant='outlined'>
                         Cancel
                     </Button>
-                    {needApproveBUSDAmount > 0 
-                    ?
-                    <Box sx={{ m: 1, position: 'relative' }}>
-                        <Button onClick={approveBUSD} disabled={approving} color='info' size='large' type='submit' sx={{ mr: 2 }} variant='contained'>
-                        {approving ? 'Waiting for approve transaction...' : 'Approve BUSD'}
-                        </Button>
-                        {approving && (
-                        <CircularProgress
-                            color="secondary"
-                            size={24}
-                            sx={{
-                            color: 'green[500]',
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            marginTop: '-12px',
-                            marginLeft: '-12px',
-                            }}
-                        />
-                        )}
-                    </Box>
-                    :
                     <Box sx={{ m: 1, position: 'relative' }}>
                         <Button onClick={submitSendBlessing} disabled={sending} size='large' type='submit' sx={{ mr: 2 }} variant='contained'>
                         {sending ? 'Waiting for send transaction...' : 'Send Blessing'}
@@ -494,7 +419,6 @@ const BlessingSendPage = () => {
                         />
                         )}
                     </Box>
-                    }
                     
                     </CardActions>
                 </Card>
