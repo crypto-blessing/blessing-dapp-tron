@@ -50,6 +50,11 @@ const AppBarContent = props => {
     setAnchorEl(null);
   };
 
+  const handleEVMClose = () => {
+    setAnchorEl(null);
+    window.open("https://cryptoblessing.app/","_blank");
+  }
+
   const handleNEARClose = () => {
     setAnchorEl(null);
     window.open("https://near.cryptoblessing.app/","_blank");
@@ -60,7 +65,8 @@ const AppBarContent = props => {
     window.open("https://solana.cryptoblessing.app/","_blank");
   }
 
-  const { active, account, library, connector, activate, deactivate, chainId } = useWeb3React()
+  const [networkHost, setNetworkHost] = useState("")
+  const [account, setAccount] = useState(null)
 
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertTitle, setAlertTitle] = useState('')
@@ -68,15 +74,17 @@ const AppBarContent = props => {
 
   async function connect() {
     try {
-      injected.isAuthorized().then((isAuthorized) => {
-        if (isAuthorized) {
-          activate(injected, undefined, true).catch((e) => {
-            setOpen(true);
-          });
+      const res = await window.tronLink.request({method: 'tron_requestAccounts'})
+      if (res.code === 200) {
+        if (window.tronWeb.fullNode.host != 'https://api.nileex.io') {
+          setAlertTitle('Only support TRON Nile Testnet')
+          setAlertMessage('Please switch your network to TRON Nile Testnet.')
+          setAlertOpen(true)
         } else {
-          console.log("not authorized")
+          setNetworkHost(window.tronWeb.fullNode.host)
+          setAccount(window.tronWeb.defaultAddress.base58)
         }
-      });
+      }
       localStorage.setItem('isWalletConnected', true)
     } catch (ex) {
       console.log(ex)
@@ -85,7 +93,8 @@ const AppBarContent = props => {
 
   async function disconnect() {
     try {
-      await deactivate()
+      setNetworkHost(null)
+      setAccount(null)
       localStorage.setItem('isWalletConnected', false)
     } catch (ex) {
       console.log(ex)
@@ -101,19 +110,30 @@ const AppBarContent = props => {
 
   useEffect(() => {
     const connectWalletOnPageLoad = async () => {
-      if (localStorage?.getItem('isWalletConnected') === 'true') {
-        try {
-          await activate(injected)
-          localStorage.setItem('isWalletConnected', true)
-        } catch (ex) {
-          console.log(ex)
+      var obj = setInterval(async ()=>{
+        if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+            clearInterval(obj)
+            if (localStorage.getItem('isWalletConnected') === 'true') {
+              const res = await window.tronLink.request({method: 'tron_requestAccounts'})
+              if (res.code === 200) {
+                if (window.tronWeb.fullNode.host != 'https://api.nileex.io') {
+                  setAlertTitle('Only support TRON Nile Testnet')
+                  setAlertMessage('Please switch your network to TRON Nile Testnet.')
+                  setAlertOpen(true)
+                } else {
+                  setNetworkHost(window.tronWeb.fullNode.host)
+                  setAccount(window.tronWeb.defaultAddress.base58)
+                }
+              }
+            }
+        } else {
+          setAlertTitle('TronLink not found')
+          setAlertMessage('You need to install TronLink first.')
         }
-      } else {
-        console.log("not connected")
-      }
+      }, 10)
     }
     connectWalletOnPageLoad()
-  }, [activate, account, props])
+  }, [])
 
   const [open, setOpen] = useState(false);
 
@@ -124,26 +144,10 @@ const AppBarContent = props => {
   useEffect(() => {
     
     const loadBeforeOp = async () => {
-      switch (chainId) {
-        case 56:
-          setAlertTitle('System maintenance in progress')
-          setAlertMessage('CryptoBlessing is being upgraded and maintained, please be patient for a more secure contract and a better experience.')
-          break;
-        case 97:
-          setAlertTitle('BSC Testnet')
-          setAlertMessage('You are now on BSC Testnet.')
-          break;
-        case 1337:
-          setAlertTitle('Localnet')
-          setAlertMessage('You are now on Localnet.')
-          break;
-        default:
-          setAlertTitle('Don\'t support this network')
-          setAlertMessage('Please switch your network to BSC Mainnet(chainID: 56).')
-      }
-      if (chainId != 56 && // ** BSC Mainnet maintenance
-        chainId != 97 && chainId != 1337 && chainId != undefined) {
-          setAlertOpen(true)
+      if (account && networkHost != 'https://api.nileex.io' && networkHost != undefined) {
+        setAlertTitle('Only support TRON Nile Testnet')
+        setAlertMessage('Please switch your network to TRON Nile Testnet.')
+        setAlertOpen(true)
       }
       fetch('/api/security/block')
           .then((res) => res.json())
@@ -158,7 +162,7 @@ const AppBarContent = props => {
     }
 
     loadBeforeOp()
-  }, [chainId])
+  }, [networkHost])
 
   return (
 
@@ -206,6 +210,7 @@ const AppBarContent = props => {
               'aria-labelledby': 'basic-button',
             }}
           >
+            <MenuItem onClick={handleEVMClose}>EVM</MenuItem>
             <MenuItem onClick={handleNEARClose}>NEAR Chain</MenuItem>
             <MenuItem onClick={handleSolanaClose}>Solana Chain</MenuItem>
           </Menu2>
@@ -213,14 +218,14 @@ const AppBarContent = props => {
       </Box>
       <Box className='actions-right' sx={{ display: 'flex', alignItems: 'center' }}>
 
-        {active ? 
-        <ButtonGroup variant="contained" aria-label="outlined primary button group">
-          <Button variant="outlined">{chainName(chainId)}</Button>
-          <Button>{simpleShow(account)}</Button>
-          <IconButton onClick={disconnect} color="primary" aria-label="add to shopping cart">
-            <LogoutIcon />
-          </IconButton>
-        </ButtonGroup>  
+        {account ? 
+          <ButtonGroup variant="contained" aria-label="outlined primary button group">
+            <Button variant="outlined">{chainName(networkHost)}</Button>
+            <Button>{simpleShow(account)}</Button>
+            <IconButton onClick={disconnect} color="primary" aria-label="add to shopping cart">
+              <LogoutIcon />
+            </IconButton>
+          </ButtonGroup>
         : 
         <Button onClick={connect} size='large' variant='outlined'>
           Connect Wallet
@@ -255,6 +260,7 @@ const AppBarContent = props => {
           </DialogContentText>
           <Divider />
           <DialogContentText id="alert-dialog-description" align='right'>
+            <Link target="_blank" href="https://www.tronlink.org/">Get TronLink</Link> or 
             Follow us on: 
             <Link target='_blank' href='https://twitter.com/cryptoblessing4'>
               <IconButton>

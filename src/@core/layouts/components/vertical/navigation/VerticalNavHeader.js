@@ -50,8 +50,8 @@ const VerticalNavHeader = props => {
         <Link href='/' passHref>
           <StyledLink>
             <img src='/images/logos/logo.png' alt='CBT' width={30} height={30} />
-            <HeaderTitle variant='h6' sx={{ ml: 1 }}>
-              <Badge badgeContent='evm' color="secondary">
+            <HeaderTitle variant='h7' sx={{ ml: 1 }}>
+              <Badge badgeContent='tron' color="secondary">
                 {themeConfig.templateName}
               </Badge>
             </HeaderTitle>

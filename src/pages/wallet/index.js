@@ -18,8 +18,8 @@ import ImageListItem from '@mui/material/ImageListItem';
 import Chip from '@mui/material/Chip';
 import Link from '@mui/material/Link';
 import Box from '@mui/material/Box'
-import {BUSD_ICON, CBT_ICON} from 'src/@core/components/wallet/crypto-icons'
-
+import {TRX_ICON, CBT_ICON} from 'src/@core/components/wallet/crypto-icons'
+import BigNumber from 'bignumber.js'
 import {amountShow} from 'src/@core/utils/amount'
 
 
@@ -27,10 +27,7 @@ import { useEffect, useState } from "react"
 
 import { ethers } from 'ethers';
 import { useWeb3React } from "@web3-react/core"
-import BUSDContract from 'src/artifacts/contracts/TestBUSD.sol/BUSD.json'
-import CBTContract from 'src/artifacts/contracts/CryptoBlessingToken.sol/CryptoBlessingToken.json'
-import CBNFTContract from 'src/artifacts/contracts/CryptoBlessingNFT.sol/CryptoBlessingNFT.json'
-import {BUSDContractAddress, CBTContractAddress, CBNFTContractAddress} from 'src/@core/components/wallet/address'
+import {CBTContractAddress, CBNFTContractAddress} from 'src/@core/components/wallet/address'
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
     [`&.${tableCellClasses.head}`]: {
@@ -56,37 +53,39 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 
 const Wallet = () => {
 
-    const { active, account, chainId } = useWeb3React()
-
-    const [BNBAmount, setBNBAmount] = useState(0)
-    const [BUSDAmount, setBUSDAmount] = useState(0)
+    const [TRXAmount, setTRXAmount] = useState(0)
     const [CBTAmount, setCBTAmount] = useState(0)
     const [CBNFTItems, setCBNFTItems] = useState([])
 
+    const CBTContractAddress = 'TCAe2rdd1PBNfiFL5qJcSKk9GSYYfSmeoh'
+
     async function fetchERC20Amount() {
-        if (active && chainId != 'undefined' && typeof window.ethereum !== 'undefined') {
-            const provider = new ethers.providers.Web3Provider(window.ethereum)
-            const busdContract = new ethers.Contract(BUSDContractAddress(chainId), BUSDContract.abi, provider.getSigner())
-            const cbtContract = new ethers.Contract(CBTContractAddress(chainId), CBTContract.abi, provider.getSigner())
-            const cbNFTContract = new ethers.Contract(CBNFTContractAddress(chainId), CBNFTContract.abi, provider.getSigner())
-            provider.getSigner().getAddress().then(async (address) => {
-                try {
-                    setBNBAmount(amountShow(await provider.getBalance(address)))
-                    setBUSDAmount(amountShow(await busdContract.balanceOf(address)))
-                    setCBTAmount(amountShow(await cbtContract.balanceOf(address)))
-                    setCBNFTItems(await cbNFTContract.getMyBlessingsURI())
-                } catch (err) {
-                    console.log("Error: ", err)
-                }
-            })
-            
-        }    
-      }
+        var obj = setInterval(async ()=>{
+            if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+                clearInterval(obj)
+
+                window.tronWeb.trx.getBalance(window.tronWeb.defaultAddress.base58).then(result => {
+                    setTRXAmount(result / 1000000)
+                })
+        
+                const {
+                    abi
+                } = await window.tronWeb.trx.getContract(CBTContractAddress);
+                const contract = window.tronWeb.contract(abi.entrys, CBTContractAddress);
+                const balance = await contract.methods.balanceOf(window.tronWeb.defaultAddress.base58).call();
+                const balanceStr = balance.toString(10)
+                setCBTAmount(balanceStr.substr(0, balanceStr.length - 18))
+            }
+          }, 10)
+
+       
+
+    }
     
-      useEffect(() => {
+    useEffect(() => {
         fetchERC20Amount()
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [chainId, account])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     return (
         <Grid container spacing={6}>
@@ -95,7 +94,7 @@ const Wallet = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
                 <Card>
-                    <CardHeader title='ERC-20 Tokens' titleTypographyProps={{ variant: 'h6' }} />
+                    <CardHeader title='TRC-20 Tokens' titleTypographyProps={{ variant: 'h6' }} />
                     <TableContainer component={Paper}>
                         <Table sx={{ minWidth: 500 }} aria-label='customized table'>
                             <TableHead>
@@ -105,17 +104,11 @@ const Wallet = () => {
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                <StyledTableRow key='BNB'>
+                                <StyledTableRow key='TRX'>
                                     <StyledTableCell component='th' scope='row'>
-                                        <Chip variant="outlined" icon={<BUSD_ICON />} label="BNB" />
+                                        <Chip variant="outlined" icon={<TRX_ICON />} label="TRX" />
                                     </StyledTableCell>
-                                    <StyledTableCell align='right'>{BNBAmount}</StyledTableCell>
-                                </StyledTableRow>
-                                <StyledTableRow key='BUSD'>
-                                    <StyledTableCell component='th' scope='row'>
-                                        <Chip variant="outlined" icon={<BUSD_ICON />} label="BUSD" />
-                                    </StyledTableCell>
-                                    <StyledTableCell align='right'>{BUSDAmount}</StyledTableCell>
+                                    <StyledTableCell align='right'>{TRXAmount}</StyledTableCell>
                                 </StyledTableRow>
                                 <StyledTableRow key='CBT'>
                                     <StyledTableCell component='th' scope='row'>
@@ -129,15 +122,14 @@ const Wallet = () => {
                 </Card>
                 <Card>
                     <CardContent>
-                        <Typography variant='caption'>You can buy BNB on <Link target='_blank' href='https://www.binance.com/en/buy-BNB'>Binance</Link></Typography>
-                        <Typography variant='caption'>, or exchange BUSD on <Link target='_blank' href='https://pancakeswap.finance/swap?outputCurrency=0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56'>PancakeSwap</Link></Typography>
+                        <Typography variant='caption'>You can buy TRX on <Link target='_blank' href='https://www.binance.com'>Binance</Link></Typography>
                     </CardContent>
                 </Card>
                 
             </Grid>
             <Grid item xs={12} sm={6}>
                 <Card>
-                    <CardHeader title='ERC-721 Tokens' titleTypographyProps={{ variant: 'h6' }} />
+                    <CardHeader title='TRC-721 Tokens' titleTypographyProps={{ variant: 'h6' }} />
                     <CardContent>
                         { CBNFTItems.length > 0 ?
                         <ImageList sx={{ width: 500, height: 450 }} cols={3} rowHeight={164}>

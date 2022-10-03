@@ -16,17 +16,28 @@ import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn';
 const Category = () => {
 
     const [categoriesWithItems, setCategoriesWithItems] = useState([])
+    const [account, setAccount] = useState(null)
+
     const router = useRouter()
     const { category } = router.query
 
     useEffect(() => {
-        if (category) {
-            fetch('/api/items?category=' + category)
-            .then((res) => res.json())
-            .then((data) => {
-              setCategoriesWithItems(data.filter((item) => item.type === category))
-            })
+        
+        const connectWalletOnPageLoad = async () => {
+            const res = await window.tronLink.request({method: 'tron_requestAccounts'})
+            if (res.code === 200) {
+                setAccount(window.tronWeb.defaultAddress.base58)
+            }
+            if (category) {
+                fetch('/api/items?category=' + category)
+                .then((res) => res.json())
+                .then((data) => {
+                  setCategoriesWithItems(data.filter((item) => item.type === category))
+                })
+            }
         }
+        
+        connectWalletOnPageLoad()
       }, [category])
 
     return (
@@ -56,7 +67,7 @@ const Category = () => {
                     </Grid>
                     {item.items?.map((blessing) => (
                         <Grid key={blessing.image} item xs={12} md={2}>
-                            <BlessingCard2 blessing={blessing} />
+                            <BlessingCard2 blessing={blessing} account={account} />
                         </Grid>
                     ))}
                     

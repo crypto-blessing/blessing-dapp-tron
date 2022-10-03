@@ -6,20 +6,20 @@ const useStyles = makeStyles({
         display: 'flex',
         height: 'inherit',
         width: 'inherit',
-        padding: '3px',
+        padding: '4px',
     },
     iconRoot: {
         textAlign: 'center'
     }
 });
 
-export const BUSD_ICON = () => {
+export const TRX_ICON = () => {
     const classes = useStyles();
     
     return (
 
         <Icon classes={{root: classes.iconRoot}}>
-            <img className={classes.imageIcon} src="/images/cryptos/binance-usd-busd-logo.svg" alt='BUSD'/>
+            <img className={classes.imageIcon} src="https://cryptologos.cc/logos/tron-trx-logo.svg?v=023" alt='TRX'/>
         </Icon>
 
     );

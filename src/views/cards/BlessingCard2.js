@@ -368,7 +368,7 @@ const BlessingCard2 = (props) => {
           <Chip size="small" variant="outlined" color="warning" label={props.blessing.price} />
         </Box>
       </CardContent>
-      {active ?
+      {props.account ?
         <Button size="small" onClick={handleOpen} variant='contained' sx={{ py: 2.5, width: '100%', borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
           Send Blessing
         </Button>

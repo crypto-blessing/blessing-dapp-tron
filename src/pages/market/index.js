@@ -14,13 +14,22 @@ import { Divider, Slider } from '@mui/material'
 const Market = () => {
 
     const [categoriesWithItems, setCategoriesWithItems] = useState([])
+    const [account, setAccount] = useState(null)
 
     useEffect(() => {
-        fetch('/api/items')
-          .then((res) => res.json())
-          .then((data) => {
-            setCategoriesWithItems(data)
-          })
+        const connectWalletOnPageLoad = async () => {
+            const res = await window.tronLink.request({method: 'tron_requestAccounts'})
+            if (res.code === 200) {
+                setAccount(window.tronWeb.defaultAddress.base58)
+            }
+            fetch('/api/items')
+            .then((res) => res.json())
+            .then((data) => {
+                setCategoriesWithItems(data)
+            })
+        }
+        
+        connectWalletOnPageLoad()
       }, [])
 
     return (
@@ -38,7 +47,7 @@ const Market = () => {
                     </Grid>
                     {item.items?.map((blessing) => (
                         <Grid key={blessing.image} item xs={12} md={2}>
-                            <BlessingCard2 blessing={blessing} />
+                            <BlessingCard2 blessing={blessing} account={account} />
                         </Grid>
                     ))}
                     
