@@ -43,7 +43,6 @@ import Alert from '@mui/material/Alert';
 import {decode, toEthSignedMessageHash} from 'src/@core/utils/cypher'
 
 import { ethers, utils } from 'ethers'
-import CryptoBlessing from 'src/artifacts/contracts/CryptoBlessing.sol/CryptoBlessing.json'
 import { useWeb3React } from "@web3-react/core"
 import {transClaimListFromWalletClaims } from 'src/@core/utils/blessing'
 import {getProviderUrl, simpleShow, cryptoBlessingAdreess} from 'src/@core/components/wallet/address'
