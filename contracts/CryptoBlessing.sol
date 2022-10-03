@@ -9,19 +9,15 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "hardhat/console.sol";
 
 interface ICryptoBlessingNFT {
-    function awardBlessingNFT(address claimer, string memory blessingURI) external returns (uint256);
-    function transferOwnership(address newOwner) external;
+    function mintWithTokenURI(address to_address, uint256 tokenId_uint256, string memory tokenURI_string) external returns (string memory);
 }
 
 contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
 
     using SafeMath for uint256;
 
-    // 发送的token地址
-    address sendTokenAddress; 
     // 奖励的CB token地址
     address cryptoBlessingTokenAddress;
     // nft
@@ -47,8 +43,7 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
     function setCLAIM_TAX_RATE(uint256 _CLAIM_TAX_RATE) public onlyOwner {
         CLAIM_TAX_RATE = _CLAIM_TAX_RATE;
     }
-    constructor(address _sendTokenAddress, address _cryptoBlessingTokenAddress, address _cryptoBlessingNFTAddress) payable {
-        sendTokenAddress = _sendTokenAddress;
+    constructor(address _cryptoBlessingTokenAddress, address _cryptoBlessingNFTAddress) payable {
         cryptoBlessingTokenAddress = _cryptoBlessingTokenAddress;
         cryptoBlessingNFTAddress = _cryptoBlessingNFTAddress;
     }
@@ -166,18 +161,20 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
         uint256 claimQuantity,
         ClaimType claimType,
         address[] memory pubkeys
-    ) public whenNotPaused {
+    ) public whenNotPaused payable {
         require(0 < tokenAmount, "tokenAmount must be greater than 0");
         require(0 < claimQuantity && claimQuantity <= 13, "claimQuantity must be greater than 0 and less or equal than 13");
         require(claimQuantity == pubkeys.length, "claimQuantity must be equal to pubkeys.length");
         Blessing memory choosedBlessing = blessingMapping[image];
         require(choosedBlessing.price > 0 && choosedBlessing.deleted == 0, "Invalid blessing status!");
-        require(IERC20(sendTokenAddress).balanceOf(msg.sender) >= tokenAmount.add((claimQuantity.mul(choosedBlessing.price))), "Your token amount must be greater than you are trying to send!");
-        // require(IERC20(sendTokenAddress).approve(address(this), tokenAmount), "Approve failed!");
-        require(IERC20(sendTokenAddress).transferFrom(msg.sender, address(this), tokenAmount), "Transfer to contract failed!");
 
-        require(IERC20(sendTokenAddress).transferFrom(msg.sender, choosedBlessing.owner, claimQuantity.mul(choosedBlessing.price).mul(100 - choosedBlessing.taxRate).div(100)), "Transfer to the owner of blessing failed!");
-        require(IERC20(sendTokenAddress).transferFrom(msg.sender, owner(), claimQuantity.mul(choosedBlessing.price).mul(choosedBlessing.taxRate).div(100)), "Transfer to the contract failed!");
+        // ether amount must be greater than
+        require(msg.value >= tokenAmount.add((claimQuantity.mul(choosedBlessing.price))), "Your TRX token amount must be greater than you are trying to send!");
+
+        payable(address(this)).transfer(tokenAmount);
+
+        payable(choosedBlessing.owner).transfer(claimQuantity.mul(choosedBlessing.price).mul(100 - choosedBlessing.taxRate).div(100));
+        payable(owner()).transfer(claimQuantity.mul(choosedBlessing.price).mul(choosedBlessing.taxRate).div(100));
 
         senderBlessingMapping[msg.sender].push(SenderBlessing(
             blessingID,
@@ -214,7 +211,9 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
             }
         }
         require(choosedSenderBlessing.tokenAmount > 0, "There is no blessing found on this sender!");
-        require(IERC20(sendTokenAddress).transfer(msg.sender, choosedSenderBlessing.tokenAmount), "Transfer back to sender failed!");
+        // transfer from contract to the address
+        payable(msg.sender).transfer(choosedSenderBlessing.tokenAmount);
+
         senderBlessingMapping[msg.sender][choosedIndex].revoked = true;
 
         emit senderRevokeComplete(msg.sender, blessingID);
@@ -285,8 +284,8 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
             CBTokenAward
         ));
 
-        require(IERC20(sendTokenAddress).transfer(msg.sender, distributionAmount.div(1000).mul(1000 - CLAIM_TAX_RATE)), "Claim the token failed!");
-        require(IERC20(sendTokenAddress).transfer(owner(), distributionAmount.div(1000).mul(CLAIM_TAX_RATE)), "Tansfer tax failed!");
+        payable(msg.sender).transfer(distributionAmount.div(1000).mul(1000 - CLAIM_TAX_RATE));
+        payable(owner()).transfer(distributionAmount.div(1000).mul(CLAIM_TAX_RATE));
         
         // award 10 CB tokens to the sender
         if(IERC20(cryptoBlessingTokenAddress).balanceOf(address(this)) >= CBTokenAward) {
@@ -296,7 +295,7 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
         Blessing memory choosedBlessing = blessingMapping[choosedSenderBlessing.blessingImage];
 
         // award blessing NFT.
-        ICryptoBlessingNFT(cryptoBlessingNFTAddress).awardBlessingNFT(msg.sender, choosedBlessing.ipfs);
+        ICryptoBlessingNFT(cryptoBlessingNFTAddress).mintWithTokenURI(msg.sender,  block.number, choosedBlessing.ipfs);
 
         emit claimerClaimComplete(sender, blessingID);
         return claimerBlessing;
@@ -319,22 +318,6 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
             }
         }
         return false;
-    }
-
-    function pause() public onlyOwner {
-        _pause();
-    }
-
-    function unpause() public onlyOwner {
-        _unpause();
-    }
-
-    function upgradeToNextVersion(address nextVersionContractAddress) public onlyOwner whenPaused {
-        require(IERC20(cryptoBlessingTokenAddress).transfer(nextVersionContractAddress, IERC20(cryptoBlessingTokenAddress).balanceOf(address(this))), "Transfer CBT to next version address failed!");
-        require(IERC20(sendTokenAddress).transfer(owner(), IERC20(sendTokenAddress).balanceOf(address(this))), "Transfer BUSD to owner failed!");
-        // transfer the status of this contract to the new one
-        
-        ICryptoBlessingNFT(cryptoBlessingNFTAddress).transferOwnership(nextVersionContractAddress);
     }
 
 }
