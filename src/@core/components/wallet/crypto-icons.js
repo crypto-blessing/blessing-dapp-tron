@@ -13,7 +13,7 @@ const useStyles = makeStyles({
     }
 });
 
-export const TRX_ICON = () => {
+export const TRON_ICON = () => {
     const classes = useStyles();
     
     return (

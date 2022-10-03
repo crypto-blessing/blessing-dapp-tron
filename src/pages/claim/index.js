@@ -16,7 +16,7 @@ import Grid from '@mui/material/Grid'
 import Typography from '@mui/material/Typography'
 import Avatar from '@mui/material/Avatar'
 import Button from '@mui/material/Button'
-import {TRX_ICON, CBT_ICON} from 'src/@core/components/wallet/crypto-icons'
+import {TRON_ICON, CBT_ICON} from 'src/@core/components/wallet/crypto-icons'
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import Chip from '@mui/material/Chip'
 import Stack from '@mui/material/Stack';

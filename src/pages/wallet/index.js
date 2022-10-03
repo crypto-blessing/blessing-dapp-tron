@@ -18,7 +18,7 @@ import ImageListItem from '@mui/material/ImageListItem';
 import Chip from '@mui/material/Chip';
 import Link from '@mui/material/Link';
 import Box from '@mui/material/Box'
-import {TRX_ICON, CBT_ICON} from 'src/@core/components/wallet/crypto-icons'
+import {TRON_ICON, CBT_ICON} from 'src/@core/components/wallet/crypto-icons'
 import BigNumber from 'bignumber.js'
 import {amountShow} from 'src/@core/utils/amount'
 
@@ -106,7 +106,7 @@ const Wallet = () => {
                             <TableBody>
                                 <StyledTableRow key='TRX'>
                                     <StyledTableCell component='th' scope='row'>
-                                        <Chip variant="outlined" icon={<TRX_ICON />} label="TRX" />
+                                        <Chip variant="outlined" icon={<TRON_ICON />} label="TRX" />
                                     </StyledTableCell>
                                     <StyledTableCell align='right'>{TRXAmount}</StyledTableCell>
                                 </StyledTableRow>
