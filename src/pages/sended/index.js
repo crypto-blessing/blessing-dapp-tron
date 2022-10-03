@@ -16,8 +16,6 @@ import {TRON_ICON} from 'src/@core/components/wallet/crypto-icons'
 import Chip from '@mui/material/Chip'
 import Badge from '@mui/material/Badge';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import { ethers } from 'ethers'
-import { useWeb3React } from "@web3-react/core"
 
 
 
@@ -54,28 +52,25 @@ const BlessingSended = () => {
         setPage(0)
     }
 
-
-    const { active, account, chainId } = useWeb3React()
-
     // eslint-disable-next-line react-hooks/exhaustive-deps
     async function fetchMySendedBlessings() {
-        if (active && chainId != 'undefined' && typeof window.ethereum !== 'undefined') {
-            const provider = new ethers.providers.Web3Provider(window.ethereum)
-            const cbContract = new ethers.Contract(cryptoBlessingAdreess(chainId), CryptoBlessing.abi, provider.getSigner())
-            try {
-                const blessings = await cbContract.getMySendedBlessings()
-                setBlessings(transBlesingsFromWalletBlessings(account, blessings))
-            } catch (err) {
-                console.log("Error: ", err)
-            }
+        // if (active && chainId != 'undefined' && typeof window.ethereum !== 'undefined') {
+        //     const provider = new ethers.providers.Web3Provider(window.ethereum)
+        //     const cbContract = new ethers.Contract(cryptoBlessingAdreess(chainId), CryptoBlessing.abi, provider.getSigner())
+        //     try {
+        //         const blessings = await cbContract.getMySendedBlessings()
+        //         setBlessings(transBlesingsFromWalletBlessings(account, blessings))
+        //     } catch (err) {
+        //         console.log("Error: ", err)
+        //     }
             
-        }    
+        // }    
     }
 
     useEffect(() => {
         fetchMySendedBlessings()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [chainId, account])
+    }, [])
 
     return (
         <Grid container spacing={6}>
