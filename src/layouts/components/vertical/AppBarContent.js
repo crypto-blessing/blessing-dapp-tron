@@ -110,27 +110,27 @@ const AppBarContent = props => {
 
   useEffect(() => {
     const connectWalletOnPageLoad = async () => {
-      var obj = setInterval(async ()=>{
-        if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
-            clearInterval(obj)
-            if (localStorage.getItem('isWalletConnected') === 'true') {
-              const res = await window.tronLink.request({method: 'tron_requestAccounts'})
-              if (res.code === 200) {
-                if (window.tronWeb.fullNode.host != 'https://api.nileex.io') {
-                  setAlertTitle('Only support TRON Nile Testnet')
-                  setAlertMessage('Please switch your network to TRON Nile Testnet.')
-                  setAlertOpen(true)
-                } else {
-                  setNetworkHost(window.tronWeb.fullNode.host)
-                  setAccount(window.tronWeb.defaultAddress.base58)
-                }
-              }
-            }
-        } else {
-          setAlertTitle('TronLink not found')
-          setAlertMessage('You need to install TronLink first.')
-        }
-      }, 10)
+      // var obj = setInterval(async ()=>{
+      //   if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+      //       clearInterval(obj)
+      //       if (localStorage.getItem('isWalletConnected') === 'true') {
+      //         const res = await window.tronLink.request({method: 'tron_requestAccounts'})
+      //         if (res.code === 200) {
+      //           if (window.tronWeb.fullNode.host != 'https://api.nileex.io') {
+      //             setAlertTitle('Only support TRON Nile Testnet')
+      //             setAlertMessage('Please switch your network to TRON Nile Testnet.')
+      //             setAlertOpen(true)
+      //           } else {
+      //             setNetworkHost(window.tronWeb.fullNode.host)
+      //             setAccount(window.tronWeb.defaultAddress.base58)
+      //           }
+      //         }
+      //       }
+      //   } else {
+      //     setAlertTitle('TronLink not found')
+      //     setAlertMessage('You need to install TronLink first.')
+      //   }
+      // }, 10)
     }
     connectWalletOnPageLoad()
   }, [])
