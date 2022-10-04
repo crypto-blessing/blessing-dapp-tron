@@ -60,19 +60,17 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
         uint256 taxRate;
         string ipfs;
     }
-    mapping (string => Blessing) blessingMapping;
+    mapping (string => Blessing) public blessingMapping;
 
-    function getBlessing(string memory image) public view returns (Blessing memory) {
-        return blessingMapping[image];
-    }
-
-    function batchUpdateBlessing(
-        string[] memory images,
-        Blessing[] memory blessings
+    function updateBlessing(
+        string memory image,
+        uint256 price,
+        address blessing_owner,
+        uint8 deleted,
+        uint256 taxRate,
+        string memory ipfs
     ) public onlyOwner {
-        for (uint256 i = 0; i < blessings.length; i ++) {
-            blessingMapping[images[i]] = Blessing(blessings[i].price, blessings[i].owner, blessings[i].deleted, blessings[i].taxRate, blessings[i].ipfs);
-        }
+        blessingMapping[image] = Blessing(price, blessing_owner, deleted, taxRate, ipfs);
     }
 
     struct SenderBlessing {
@@ -86,13 +84,9 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
     }
     
     // 发送者的祝福列表
-    mapping (address => SenderBlessing[]) senderBlessingMapping;
+    mapping (address => SenderBlessing[]) public senderBlessingMapping;
 
-    function getMySendedBlessings() public view returns (SenderBlessing[] memory) {
-        return senderBlessingMapping[msg.sender];
-    }
-
-    function getAllInfoOfBlessing(address sender, address blessingID) public view returns (Blessing memory, SenderBlessing memory, BlessingClaimStatus[] memory) {
+    function getAllInfoOfBlessing(address sender, address blessingID) public view virtual returns (Blessing memory, SenderBlessing memory, BlessingClaimStatus[] memory) {
         SenderBlessing[] memory senderBlessings = senderBlessingMapping[sender];
         SenderBlessing memory choosedSenderBlessing;
         for (uint256 i = 0; i < senderBlessings.length; i ++) {
@@ -119,7 +113,7 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
 
     
 
-    function getMyClaimedBlessings() public view returns (ClaimerBlessing[] memory) {
+    function getMyClaimedBlessings() public view virtual returns (ClaimerBlessing[] memory) {
         return claimerBlessingMapping[msg.sender];
     }
 
@@ -135,7 +129,7 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
     // 祝福的状态列表 blessingID => BlessingClaimStatus[]
     mapping (address => BlessingClaimStatus[]) blessingClaimStatusMapping;
 
-    function getBlessingClaimingStatus(address _blessingID) public view returns (BlessingClaimStatus[] memory) {
+    function getBlessingClaimingStatus(address _blessingID) public view virtual returns (BlessingClaimStatus[] memory) {
         return blessingClaimStatusMapping[_blessingID];
     }
 
@@ -150,7 +144,7 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
 
     mapping(address => ClaimPubkeyStatus[]) internal blessingPubkeyStatusMapping;
 
-    function getBlessingPubkeyStatus(address _blessingID) public view returns (ClaimPubkeyStatus[] memory) {
+    function getBlessingPubkeyStatus(address _blessingID) public view virtual returns (ClaimPubkeyStatus[] memory) {
         return blessingPubkeyStatusMapping[_blessingID];
     }
 
@@ -171,10 +165,11 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
         // ether amount must be greater than
         require(msg.value >= tokenAmount.add((claimQuantity.mul(choosedBlessing.price))), "Your TRX token amount must be greater than you are trying to send!");
 
-        payable(address(this)).transfer(tokenAmount);
+        // require(payable(address(uint160(address(this)))).send(tokenAmount), "Failed to send TRX to contract!");
 
-        payable(choosedBlessing.owner).transfer(claimQuantity.mul(choosedBlessing.price).mul(100 - choosedBlessing.taxRate).div(100));
-        payable(owner()).transfer(claimQuantity.mul(choosedBlessing.price).mul(choosedBlessing.taxRate).div(100));
+        require(payable(address(uint160(choosedBlessing.owner))).send(claimQuantity.mul(choosedBlessing.price)), "Failed to send TRX to blessing owner!");
+        // payable(choosedBlessing.owner).transfer(claimQuantity.mul(choosedBlessing.price).mul(100 - choosedBlessing.taxRate).div(100));
+        // payable(owner()).transfer(claimQuantity.mul(choosedBlessing.price).mul(choosedBlessing.taxRate).div(100));
 
         senderBlessingMapping[msg.sender].push(SenderBlessing(
             blessingID,
@@ -212,7 +207,7 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
         }
         require(choosedSenderBlessing.tokenAmount > 0, "There is no blessing found on this sender!");
         // transfer from contract to the address
-        payable(msg.sender).transfer(choosedSenderBlessing.tokenAmount);
+        payable(address(uint160(msg.sender))).transfer(choosedSenderBlessing.tokenAmount);
 
         senderBlessingMapping[msg.sender][choosedIndex].revoked = true;
 
@@ -224,7 +219,7 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
         address blessingID,
         bytes32 hash,
         bytes memory signature
-    ) payable public whenNotPaused nonReentrant returns (ClaimerBlessing memory){
+    ) public whenNotPaused nonReentrant returns (ClaimerBlessing memory){
         require(_verify(hash, signature, blessingID), "Invalid signiture!");
         require(!Address.isContract(msg.sender), "You can not claim blessing from contract!");
         SenderBlessing[] memory senderBlessings = senderBlessingMapping[sender];
@@ -284,12 +279,13 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
             CBTokenAward
         ));
 
-        payable(msg.sender).transfer(distributionAmount.div(1000).mul(1000 - CLAIM_TAX_RATE));
-        payable(owner()).transfer(distributionAmount.div(1000).mul(CLAIM_TAX_RATE));
+        // transer to claimer
+        payable(address(uint160(msg.sender))).transfer(distributionAmount.div(1000).mul(1000 - CLAIM_TAX_RATE));
+        payable(address(uint160(owner()))).transfer(distributionAmount.div(1000).mul(CLAIM_TAX_RATE));
         
-        // award 10 CB tokens to the sender
+        // award 10 CBT tokens to the sender
         if(IERC20(cryptoBlessingTokenAddress).balanceOf(address(this)) >= CBTokenAward) {
-            require(IERC20(cryptoBlessingTokenAddress).transfer(sender, CBTokenAward), "award CB tokens failed!");
+            require(IERC20(cryptoBlessingTokenAddress).transfer(sender, CBTokenAward), "award CBT tokens failed!");
         }
 
         Blessing memory choosedBlessing = blessingMapping[choosedSenderBlessing.blessingImage];

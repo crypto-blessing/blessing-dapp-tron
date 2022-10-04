@@ -59,7 +59,7 @@ const Wallet = () => {
                 clearInterval(obj)
 
                 window.tronWeb.trx.getBalance(window.tronWeb.defaultAddress.base58).then(result => {
-                    setTRXAmount(result / 1000000)
+                    setTRXAmount(window.tronWeb.fromSun(result))
                 })
         
                 const {

@@ -28,7 +28,7 @@ export const transBlesingsFromWalletBlessings = (sender, blessings) => {
             code: blessing.blessingID,
             blessing: blessing.blessingImage,
             time: toLocaleDateFromBigInt(blessing.sendTimestamp.toString()),
-            amount: parseFloat(ethers.utils.formatEther(blessing.tokenAmount)).toFixed(2),
+            amount: window.tronWeb.fromSun(blessing.tokenAmount),
             quantity: blessing.claimQuantity.toString(),
             type: blessing.claimType === 0 ? 'AVERAGE' : 'RANDOM',
             progress: '/claim?sender=' + encode(sender) + '&blessing=' + encode(blessing.blessingID),

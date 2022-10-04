@@ -35,7 +35,7 @@ import { green } from '@mui/material/colors';
 // ** Icons Imports
 import {TRON_ICON} from 'src/@core/components/wallet/crypto-icons'
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-
+import { ethers } from 'ethers';
 import {simpleShow, cryptoBlessingAdreess} from 'src/@core/components/wallet/address'
 import {encode} from 'src/@core/utils/cypher'
 
@@ -75,7 +75,7 @@ const BlessingCard2 = (props) => {
   const [alertMsg, setAlertMsg] = useState('');
   const [alertOpen, setAlertOpen] = useState(false);
 
-
+  const [totalPay, setTotalPay] = useState(0);
   const [sending, setSending] = useState(false);
   const [approving, setApproving] = useState(false);
   const [sendSuccessOpen, setSendSuccessOpen] = useState(false);
@@ -121,6 +121,7 @@ const BlessingCard2 = (props) => {
     let payCaption = '', claimCaption = '';
     if (tokenAmount > 0 && claimQuantity > 0) {
       let totalPay = (claimQuantity * props.blessing.trx_price) + parseFloat(tokenAmount)
+      setTotalPay(totalPay)
       payCaption = `You will pay ${totalPay.toFixed(2)} TRX. `
     } else {
       payCaption = ''
@@ -140,7 +141,7 @@ const BlessingCard2 = (props) => {
   }
 
   const checkFormValidate = () => {
-    if (tokenAmount <= 0 || BigInt((claimQuantity * props.blessing.trx_price + parseFloat(tokenAmount)) * 10 ** 18) > trxAmount) {
+    if (tokenAmount <= 0 || parseFloat(totalPay) > parseFloat(props.TRXAmount)) {
       setAlertMsg('You have insufficient TRX balance.')
       setAlertOpen(true);
 
@@ -191,12 +192,12 @@ const BlessingCard2 = (props) => {
     setSending(true)
     
     // start to send blessing
-    const provider = new ethers.providers.Web3Provider(window.ethereum)
-    const cbContract = new ethers.Contract(cryptoBlessingAdreess(chainId), CryptoBlessing.abi, provider.getSigner())
-    const blessingKeypair = ethers.Wallet.createRandom();
     try {
+      const cbContract = await  window.tronWeb.contract().at(cryptoBlessingAdreess());
+      const blessingKeypair = ethers.Wallet.createRandom();
       let pubkeys = []
       let claimKeys = []
+
 
       // claim keys gen
       for (let i = 0; i < claimQuantity; i++) {
@@ -210,20 +211,23 @@ const BlessingCard2 = (props) => {
 
       await storeKeys(blessingKeypair, claimKeys)
 
-      const sendBlessingTx = await cbContract.sendBlessing(
-        props.blessing.image, blessingKeypair.address, 
-        BigInt(tokenAmount * 10 ** 18), 
+
+      const result = await cbContract.sendBlessing(props.blessing.image, blessingKeypair.address, 
+        window.tronWeb.toSun(tokenAmount), 
         claimQuantity,
         claimType,
         pubkeys
-      )
-      await sendBlessingTx.wait();
+      ).send({
+        callValue: window.tronWeb.toSun(totalPay),
+        shouldPollResponse: true
+      });
+
+      console.log(result)
       setSending(false)
       setBlessingKeypairAddress(blessingKeypair.address)
       localStorage.setItem('my_blessing_claim_key_' + blessingKeypair.address, blessingKeypair.privateKey)
       setOpen(false)
       setSendSuccessOpen(true)
-      fetchTRXmount()
       setLoading(true)
     } catch (e) {
       console.log(e)
@@ -266,7 +270,7 @@ const BlessingCard2 = (props) => {
           }}
         >
           <Typography variant='caption'>{props.blessing.title}</Typography>
-          <Chip size="small" variant="outlined" color="warning" label={props.blessing.trx_price} />
+          <Chip size="small" variant="outlined" color="error" label={props.blessing.trx_price} />
         </Box>
       </CardContent>
       {props.account ?
@@ -319,13 +323,13 @@ const BlessingCard2 = (props) => {
                   <Typography sx={{ fontWeight: 500, marginBottom: 3 }}>
                     Designer:{' '}
                     <Box component='span' sx={{ fontWeight: 'bold' }}>
-                      {simpleShow(props.blessing.owner)}
+                      {simpleShow(props.blessing.tron_owner)}
                     </Box>
                   </Typography>
                 </CardContent>
                 <CardActions className='card-action-dense'>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                  <Button startIcon={<AttachMoneyIcon />} variant='outlined' color='warning'>{props.blessing.trx_price} TRX</Button>
+                  <Button startIcon={<AttachMoneyIcon />} variant='outlined' color='error'>{props.blessing.trx_price} TRX</Button>
                   </Box>
                 </CardActions>
               </Grid>

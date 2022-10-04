@@ -12,9 +12,8 @@ export const chainName = (networkHost) => {
     }
 }
 
-export const cryptoBlessingAdreess = (chainId) => {
-    return "TGo1fTy8T2tP29KGG89yoq7PiJwFPufAFY"
-
+export const cryptoBlessingAdreess = () => {
+    return "TEk35DMfL1SaQh8TFAhN4jPoMJw6JUet1Z"
 }
 
 export const CBTContractAddress = () => {
