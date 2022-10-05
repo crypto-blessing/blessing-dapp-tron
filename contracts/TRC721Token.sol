@@ -985,6 +985,19 @@ contract TRC721MetadataMintable is TRC721, TRC721Metadata, MinterRole {
         _setTokenURI(tokenId, tokenURI);
         return true;
     }
+
+    /**
+     * @dev Function to mint tokens.
+     * @param tokenId The token id to mint.
+     * @param tokenURI The token URI of the minted token.
+     * @return A boolean that indicates if the operation was successful.
+     */
+    function mintMyselfWithTokenURI(uint256 tokenId, string memory tokenURI) public returns (bool) {
+        _mint(_msgSender(), tokenId);
+        _setTokenURI(tokenId, tokenURI);
+        return true;
+    }
+    
 }
 
 

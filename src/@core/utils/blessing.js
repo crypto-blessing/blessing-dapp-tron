@@ -1,6 +1,6 @@
 import { ethers } from 'ethers';
 import {toLocaleDateFromBigInt} from 'src/@core/utils/date'
-import {simpleShow, cryptoBlessingAdreess} from 'src/@core/components/wallet/address'
+import {miniShow, simpleShow, cryptoBlessingAdreess} from 'src/@core/components/wallet/address'
 import {encode} from 'src/@core/utils/cypher'
 
 export const getBlessingTitle = (description) => {
@@ -23,6 +23,7 @@ export const getBlessingDesc = (description, omit = false) => {
 
 export const transBlesingsFromWalletBlessings = (sender, blessings) => {
     let newBlessings = []
+    let blessingIndex = 0
     blessings.forEach(blessing => {
         newBlessings.push({
             code: blessing.blessingID,
@@ -31,7 +32,7 @@ export const transBlesingsFromWalletBlessings = (sender, blessings) => {
             amount: window.tronWeb.fromSun(blessing.tokenAmount),
             quantity: blessing.claimQuantity.toString(),
             type: blessing.claimType === 0 ? 'AVERAGE' : 'RANDOM',
-            progress: '/claim?sender=' + encode(sender) + '&blessing=' + encode(blessing.blessingID),
+            progress: '/claim?sender=' + encode(sender) + '&blessing=' + encode(blessing.blessingID) + '&blessing_index=' + (blessingIndex++),
             revoked: blessing.revoked
         })
     })
@@ -41,15 +42,16 @@ export const transBlesingsFromWalletBlessings = (sender, blessings) => {
 
 export const transClaimBlesingsFromWalletBlessings = (blessings) => {
     let newBlessings = []
+    let blessingIndex = 0
     blessings.forEach(blessing => {
         newBlessings.push({
             code: blessing.blessingID,
             blessing: blessing.blessingImage,
             sender: simpleShow(blessing.sender),
             time: toLocaleDateFromBigInt(blessing.claimTimestamp.toString()),
-            amount: parseFloat(ethers.utils.formatEther(blessing.claimAmount)).toFixed(2),
-            tax: parseFloat(ethers.utils.formatEther(blessing.taxAmount)).toFixed(2),
-            progress: '/claim?sender=' + encode(blessing.sender) + '&blessing=' + encode(blessing.blessingID)
+            amount: parseFloat(window.tronWeb.fromSun(blessing.claimAmount)).toFixed(2),
+            tax: parseFloat(window.tronWeb.fromSun(blessing.taxAmount)).toFixed(2),
+            progress: '/claim?sender=' + encode(blessing.sender) + '&blessing=' + encode(blessing.blessingID) + '&blessing_index=' + (blessingIndex++)
         })
     })
 
@@ -62,19 +64,19 @@ export const transClaimListFromWalletClaims = (claims) => {
     let luckyClaimer = {}
     let maxClaimAmount = 0.0
     claims.forEach(claim => {
-        claimedAmount += parseFloat(ethers.utils.formatEther(claim.distributedAmount))
-        if (parseFloat(ethers.utils.formatEther(claim.distributedAmount)) > maxClaimAmount) {
-            maxClaimAmount = parseFloat(ethers.utils.formatEther(claim.distributedAmount))
+        claimedAmount += parseFloat(window.tronWeb.fromSun(claim.distributedAmount))
+        if (parseFloat(window.tronWeb.fromSun(claim.distributedAmount)) > maxClaimAmount) {
+            maxClaimAmount = parseFloat(window.tronWeb.fromSun(claim.distributedAmount))
             luckyClaimer = {
-                claimer: simpleShow(claim.claimer),
-                amount: ethers.utils.formatEther(claim.distributedAmount),
+                claimer: miniShow(window.tronWeb.address.fromHex(claim.claimer)),
+                amount: window.tronWeb.fromSun(claim.distributedAmount),
             }
         }
         newClaims.push({
-            claimer: simpleShow(claim.claimer),
+            claimer: miniShow(window.tronWeb.address.fromHex(claim.claimer)),
             time: toLocaleDateFromBigInt(claim.claimTimestamp.toString()),
-            amount: ethers.utils.formatEther(claim.distributedAmount),
-            CBTokenAwardToSenderAmount: ethers.utils.formatEther(claim.CBTokenAwardToSenderAmount),
+            amount: window.tronWeb.fromSun(claim.distributedAmount),
+            CBTokenAwardToSenderAmount: window.tronWeb.fromSun(claim.CBTokenAwardToSenderAmount),
         })
     })
 

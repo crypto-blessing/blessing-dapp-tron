@@ -259,7 +259,7 @@ const BlessingSendPage = () => {
         const provider = new ethers.providers.Web3Provider(window.ethereum)
         provider.getSigner().getAddress().then(async (address) => {
         const privateKey = localStorage.getItem('my_blessing_claim_key_' + blessingKeypairAddress)
-        navigator.clipboard.writeText(`[CryptoBlessing] ${blessingInDB.title} | ${blessingInDB.description}. Claim your TRX & blessing NFT here: https://cryptoblessing.app/claim?sender=${encode(address)}&blessing=${encode(blessingKeypairAddress)}&key=${encode(privateKey)}`)
+        navigator.clipboard.writeText(`[CryptoBlessing] ${blessingInDB.title} | ${blessingInDB.description}. Claim your TRX & blessing NFT here: https://tron.cryptoblessing.app/claim?sender=${encode(address)}&blessing=${encode(blessingKeypairAddress)}&key=${encode(privateKey)}`)
         })
     }
 

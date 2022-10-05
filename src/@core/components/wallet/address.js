@@ -5,6 +5,13 @@ export const simpleShow = (address) => {
     
 }
 
+export const miniShow = (address) => {
+    if (address != undefined && address.length === 34) {
+        return address.substring(0, 3) + '...' + address.substring(address.length - 3, address.length);
+    }
+    
+}
+
 export const chainName = (networkHost) => {
     switch (networkHost) {
         case 'https://api.nileex.io':
@@ -12,14 +19,14 @@ export const chainName = (networkHost) => {
     }
 }
 
-export const cryptoBlessingAdreess = () => {
-    return "TEk35DMfL1SaQh8TFAhN4jPoMJw6JUet1Z"
-}
-
 export const CBTContractAddress = () => {
     return "TCAe2rdd1PBNfiFL5qJcSKk9GSYYfSmeoh"
 }
 
 export const CBNFTContractAddress = () => {
-    return "TG2p7hJdAjpxSMTnjVfiTH3yTdVTZQEVUP"
+    return "TYiesynAuJTrpTihHW7d1JUngFyAX7EE99"
+}
+
+export const cryptoBlessingAdreess = () => {
+    return "TY8ynXxdc8Kzs862i83zPxTfFvUPWccoi2"
 }

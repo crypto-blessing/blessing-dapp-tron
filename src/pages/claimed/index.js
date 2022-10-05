@@ -48,17 +48,21 @@ const BlessingClaimed = () => {
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     async function fetchMyClaimedBlessings() {
-        // if (active && chainId != 'undefined' && typeof window.ethereum !== 'undefined') {
-        //     const provider = new ethers.providers.Web3Provider(window.ethereum)
-        //     const cbContract = new ethers.Contract(cryptoBlessingAdreess(chainId), CryptoBlessing.abi, provider.getSigner())
-        //     try {
-        //         const blessings = await cbContract.getMyClaimedBlessings()
-        //         setBlessings(transClaimBlesingsFromWalletBlessings(blessings))
-        //     } catch (err) {
-        //         console.log("Error: ", err)
-        //     }
+
+        const cbContract = await  window.tronWeb.contract().at(cryptoBlessingAdreess());
+        let blessings = [];
+        for (let i = 0; i < 200; i++){
+            try {
+                const blessing = await cbContract.claimerBlessingMapping(window.tronWeb.defaultAddress.base58, i).call();
+                blessings.push(blessing)
+            } catch(e) {
+                break
+            }
             
-        // }    
+        }
+        
+        console.log(blessings)
+        setBlessings(transClaimBlesingsFromWalletBlessings(blessings))
     }
 
     useEffect(() => {
@@ -108,7 +112,7 @@ const BlessingClaimed = () => {
                                         : ''}
 
                                         {column.type === 'amount' ?
-                                        <Chip variant="outlined" color="warning" label={value} icon={<TRON_ICON />} />
+                                        <Chip variant="outlined" color="error" label={value} icon={<TRON_ICON />} />
                                         : ''}
 
                                         {column.type === 'progress' ?

@@ -80,7 +80,7 @@ const BlessingSended = () => {
         <Grid container spacing={6}>
             <Grid item xs={12}>
                 <Typography variant='h5'>
-                Blessing Sended History
+                Blessing Sent History
                 </Typography>
                 <Typography variant='body2'>Do you need help? You can join our telegram group: 
                     <Link target='_blank' href="https://t.me/crypto_blessing_eng" underline="always">Find admin in telegram</Link>

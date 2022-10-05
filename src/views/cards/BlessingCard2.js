@@ -195,17 +195,18 @@ const BlessingCard2 = (props) => {
     try {
       const cbContract = await  window.tronWeb.contract().at(cryptoBlessingAdreess());
       const blessingKeypair = ethers.Wallet.createRandom();
-      let pubkeys = []
+      let priKeys = []
       let claimKeys = []
 
+      console.log(blessingKeypair)
 
       // claim keys gen
       for (let i = 0; i < claimQuantity; i++) {
         const claimKeyPair = ethers.Wallet.createRandom();
-        pubkeys.push(claimKeyPair.address)
+        priKeys.push(tronWeb.sha3(claimKeyPair.address))
         claimKeys.push({
           pubkey: claimKeyPair.address,
-          private_key: claimKeyPair.privateKey
+          private_key: tronWeb.sha3(claimKeyPair.address)
         })
       }
 
@@ -216,7 +217,7 @@ const BlessingCard2 = (props) => {
         window.tronWeb.toSun(tokenAmount), 
         claimQuantity,
         claimType,
-        pubkeys
+        priKeys
       ).send({
         callValue: window.tronWeb.toSun(totalPay),
         shouldPollResponse: true
@@ -242,7 +243,7 @@ const BlessingCard2 = (props) => {
     const provider = new ethers.providers.Web3Provider(window.ethereum)
     provider.getSigner().getAddress().then(async (address) => {
       const privateKey = localStorage.getItem('my_blessing_claim_key_' + blessingKeypairAddress)
-      navigator.clipboard.writeText(`[CryptoBlessing] ${props.blessing.title} | ${props.blessing.description}. Claim your TRX & blessing NFT here: https://cryptoblessing.app/claim?sender=${encode(address)}&blessing=${encode(blessingKeypairAddress)}&key=${encode(privateKey)}`)
+      navigator.clipboard.writeText(`[CryptoBlessing] ${props.blessing.title} | ${props.blessing.description}. Claim your TRX & blessing NFT here: https://tron.cryptoblessing.app/claim?sender=${encode(address)}&blessing=${encode(blessingKeypairAddress)}&key=${encode(privateKey)}`)
     })
   }
 

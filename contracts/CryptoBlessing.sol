@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
 interface ICryptoBlessingNFT {
-    function mintWithTokenURI(address to_address, uint256 tokenId_uint256, string memory tokenURI_string) external returns (string memory);
+    function mintMyselfWithTokenURI(uint256 tokenId, string memory tokenURI) external returns (bool);
 }
 
 contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
@@ -28,11 +28,11 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
 
     uint256 CLAIM_TAX_RATE = 10; // 1000
 
-    event senderSendCompleted(address sender, address blessingID);
+    event senderSendCompleted(address sender, string blessingID);
 
-    event claimerClaimComplete(address sender, address blessingID);
+    event claimerClaimComplete(address sender, string blessingID);
 
-    event senderRevokeComplete(address sender, address blessingID);
+    event senderRevokeComplete(address sender, string blessingID);
 
     function setCBTOKENAWARDRATIO(uint256 _CBTOKENAWARDRATIO, uint256 _CBTOKENAWARDMAX) public onlyOwner {
         CBTOKENAWARDRATIO = _CBTOKENAWARDRATIO;
@@ -44,6 +44,11 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
         CLAIM_TAX_RATE = _CLAIM_TAX_RATE;
     }
     constructor(address _cryptoBlessingTokenAddress, address _cryptoBlessingNFTAddress) payable {
+        cryptoBlessingTokenAddress = _cryptoBlessingTokenAddress;
+        cryptoBlessingNFTAddress = _cryptoBlessingNFTAddress;
+    }
+
+    function setCryptoBlessingTokenAddress(address _cryptoBlessingTokenAddress, address _cryptoBlessingNFTAddress) public onlyOwner {
         cryptoBlessingTokenAddress = _cryptoBlessingTokenAddress;
         cryptoBlessingNFTAddress = _cryptoBlessingNFTAddress;
     }
@@ -74,7 +79,7 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
     }
 
     struct SenderBlessing {
-        address blessingID;
+        string blessingID;
         string blessingImage;
         uint256 sendTimestamp;
         uint256 tokenAmount;
@@ -86,22 +91,9 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
     // 发送者的祝福列表
     mapping (address => SenderBlessing[]) public senderBlessingMapping;
 
-    function getAllInfoOfBlessing(address sender, address blessingID) public view virtual returns (Blessing memory, SenderBlessing memory, BlessingClaimStatus[] memory) {
-        SenderBlessing[] memory senderBlessings = senderBlessingMapping[sender];
-        SenderBlessing memory choosedSenderBlessing;
-        for (uint256 i = 0; i < senderBlessings.length; i ++) {
-            if (senderBlessings[i].blessingID == blessingID) {
-                choosedSenderBlessing = senderBlessings[i];
-            }
-        }
-        require(choosedSenderBlessing.tokenAmount > 0, "There is no blessing found on this sender!");
-        BlessingClaimStatus[] memory blessingClaimStatus = blessingClaimStatusMapping[blessingID];
-        return (blessingMapping[choosedSenderBlessing.blessingImage], choosedSenderBlessing, blessingClaimStatus);
-    }
-
     struct ClaimerBlessing {
         address sender;
-        address blessingID;
+        string blessingID;
         string blessingImage;
         uint256 claimTimestamp;
         uint256 claimAmount;
@@ -109,13 +101,7 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
     }
 
     // 接收者的祝福列表
-    mapping (address => ClaimerBlessing[]) claimerBlessingMapping;
-
-    
-
-    function getMyClaimedBlessings() public view virtual returns (ClaimerBlessing[] memory) {
-        return claimerBlessingMapping[msg.sender];
-    }
+    mapping (address => ClaimerBlessing[]) public claimerBlessingMapping;
 
     struct BlessingClaimStatus {
         address claimer;
@@ -127,38 +113,30 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
     }
 
     // 祝福的状态列表 blessingID => BlessingClaimStatus[]
-    mapping (address => BlessingClaimStatus[]) blessingClaimStatusMapping;
-
-    function getBlessingClaimingStatus(address _blessingID) public view virtual returns (BlessingClaimStatus[] memory) {
-        return blessingClaimStatusMapping[_blessingID];
-    }
+    mapping (string => BlessingClaimStatus[]) public blessingClaimStatusMapping;
 
     function compareStrings(string memory a, string memory b) internal pure returns (bool) {
         return (keccak256(bytes(a)) == keccak256(bytes(b)));
     }
 
     struct ClaimPubkeyStatus {
-        address pubkey;
+        bytes32 priKey;
         bool used;
     }
 
-    mapping(address => ClaimPubkeyStatus[]) internal blessingPubkeyStatusMapping;
-
-    function getBlessingPubkeyStatus(address _blessingID) public view virtual returns (ClaimPubkeyStatus[] memory) {
-        return blessingPubkeyStatusMapping[_blessingID];
-    }
+    mapping(string => ClaimPubkeyStatus[]) public blessingPubkeyStatusMapping;
 
     function sendBlessing(
         string memory image,
-        address blessingID,
+        string memory blessingID,
         uint256 tokenAmount,
         uint256 claimQuantity,
         ClaimType claimType,
-        address[] memory pubkeys
+        bytes32[] memory priKeys
     ) public whenNotPaused payable {
         require(0 < tokenAmount, "tokenAmount must be greater than 0");
         require(0 < claimQuantity && claimQuantity <= 13, "claimQuantity must be greater than 0 and less or equal than 13");
-        require(claimQuantity == pubkeys.length, "claimQuantity must be equal to pubkeys.length");
+        require(claimQuantity == priKeys.length, "claimQuantity must be equal to pubkeys.length");
         Blessing memory choosedBlessing = blessingMapping[image];
         require(choosedBlessing.price > 0 && choosedBlessing.deleted == 0, "Invalid blessing status!");
 
@@ -182,16 +160,16 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
         ));
 
         // init the blessing claim pubkey status, claimer will use unique privatekey to sign the claim
-        for(uint256 i = 0; i < pubkeys.length; i ++) {
+        for(uint256 i = 0; i < priKeys.length; i ++) {
             blessingPubkeyStatusMapping[blessingID].push(ClaimPubkeyStatus(
-                pubkeys[i], false
+                priKeys[i], false
             ));
         }
 
         emit senderSendCompleted(msg.sender, blessingID);
     }
 
-    function revokeBlessing(address blessingID) public whenNotPaused {
+    function revokeBlessing(string memory blessingID) public whenNotPaused {
         BlessingClaimStatus[] memory blessingClaimStatusList = blessingClaimStatusMapping[blessingID];
         require(blessingClaimStatusList.length == 0, "Your blessing is claiming by others. Can not revoke anymore!");
 
@@ -200,9 +178,10 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
         SenderBlessing memory choosedSenderBlessing;
         uint256 choosedIndex;
         for (uint256 i = 0; i < senderBlessings.length; i ++) {
-            if (senderBlessings[i].blessingID == blessingID) {
+            if (compareStrings(senderBlessings[i].blessingID, blessingID)) {
                 choosedSenderBlessing = senderBlessings[i];
                 choosedIndex = i;
+                break;
             }
         }
         require(choosedSenderBlessing.tokenAmount > 0, "There is no blessing found on this sender!");
@@ -216,18 +195,18 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
 
     function claimBlessing(
         address sender,
-        address blessingID,
-        bytes32 hash,
-        bytes memory signature
+        string memory blessingID,
+        string memory pubKey
     ) public whenNotPaused nonReentrant returns (ClaimerBlessing memory){
-        require(_verify(hash, signature, blessingID), "Invalid signiture!");
+        require(_verify(pubKey, blessingID), "Invalid signiture!");
         require(!Address.isContract(msg.sender), "You can not claim blessing from contract!");
         SenderBlessing[] memory senderBlessings = senderBlessingMapping[sender];
         require(senderBlessings.length > 0, "There is no blessing found on this sender!");
         SenderBlessing memory choosedSenderBlessing;
         for (uint256 i = 0; i < senderBlessings.length; i ++) {
-            if (senderBlessings[i].blessingID == blessingID) {
+            if (compareStrings(senderBlessings[i].blessingID, blessingID)) {
                 choosedSenderBlessing = senderBlessings[i];
+                break;
             }
         }
         require(choosedSenderBlessing.revoked == false, "This blessing is revoked!");
@@ -291,7 +270,7 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
         Blessing memory choosedBlessing = blessingMapping[choosedSenderBlessing.blessingImage];
 
         // award blessing NFT.
-        ICryptoBlessingNFT(cryptoBlessingNFTAddress).mintWithTokenURI(msg.sender,  block.number, choosedBlessing.ipfs);
+        require(ICryptoBlessingNFT(cryptoBlessingNFTAddress).mintMyselfWithTokenURI(block.number, choosedBlessing.ipfs), "mint blessing NFT failed!");
 
         emit claimerClaimComplete(sender, blessingID);
         return claimerBlessing;
@@ -305,10 +284,10 @@ contract CryptoBlessing is Ownable, Pausable, ReentrancyGuard {
         return rand;
     }
 
-    function _verify(bytes32 data, bytes memory signature, address blessingID) internal returns (bool) {
-        address signatureAddress = ECDSA.recover(data, signature);
+    function _verify(string memory pubKey, string memory blessingID) internal returns (bool) {
+        bytes32 hash = keccak256(abi.encodePacked(pubKey));
         for(uint256 i = 0; i < blessingPubkeyStatusMapping[blessingID].length; i ++) {
-            if (blessingPubkeyStatusMapping[blessingID][i].pubkey == signatureAddress && !blessingPubkeyStatusMapping[blessingID][i].used) {
+            if (blessingPubkeyStatusMapping[blessingID][i].priKey == hash && !blessingPubkeyStatusMapping[blessingID][i].used) {
                 blessingPubkeyStatusMapping[blessingID][i].used = true;
                 return true;
             }

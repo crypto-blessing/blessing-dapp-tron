@@ -43,15 +43,12 @@ import Alert from '@mui/material/Alert';
 import {decode, toEthSignedMessageHash} from 'src/@core/utils/cypher'
 
 import { ethers, utils } from 'ethers'
-import { useWeb3React } from "@web3-react/core"
 import {transClaimListFromWalletClaims } from 'src/@core/utils/blessing'
 import {getProviderUrl, simpleShow, cryptoBlessingAdreess} from 'src/@core/components/wallet/address'
 import {toLocaleDateFromBigInt} from 'src/@core/utils/date'
 
 
 import {encode} from 'src/@core/utils/cypher'
-
-const Web3 = require('web3');
 
 // ** Styled Components
 const Card = styled(MuiCard)(({ theme }) => ({
@@ -105,32 +102,37 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 const ClaimPage = () => {
   const [sender, setSender] = useState('')
   const [blessingID, setBlessingID] = useState('')
+  const [blessingIndex, setBlessingIndex] = useState(0)
   const [claimKey, setClaimKey] = useState('')
   const router = useRouter()
 
   // ** Hook
   useEffect (() => {
-    const {sender, blessing, key} = router.query
-      setSender(decode(sender))
-      setBlessingID(decode(blessing))
-      if (key) {
-        setClaimKey(decode(key))
-      }
-      if (localStorage.getItem('my_claimed_' + decode(blessing)) === '1' || localStorage.getItem('my_blessing_claim_key_' + decode(blessing)) != undefined) {
-        setAlreadyClaimed(true)
-      }
-      if (blessing) {
-        fetch(`/api/items/fetchOneItem?blessing_id=${decode(blessing)}`)
-          .then((res) => res.json())
-          .then((data) => {
-            setBlessingInDB(data)
-          })
-      }
+    const {sender, blessing, key, blessing_index} = router.query
+    console.log('sender', decode(sender))
+    console.log('blessing', decode(blessing))
+    console.log('key', decode(key))
+    setSender(decode(sender))
+    setBlessingID(decode(blessing))
+    setBlessingIndex(blessing_index)
+    if (key) {
+      setClaimKey(decode(key))
+    }
+    if (localStorage.getItem('my_claimed_' + decode(blessing)) === '1' || localStorage.getItem('my_blessing_claim_key_' + decode(blessing)) != undefined) {
+      setAlreadyClaimed(true)
+    }
+    if (blessing) {
+      fetch(`/api/items/fetchOneItem?blessing_id=${decode(blessing)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setBlessingInDB(data)
+        })
+    }
       
   }, [router.query])
   
+  const [account, setAccount] = useState(null)
 
-  const [blessing, setBlessing] = useState({})
   const [blessingInDB, setBlessingInDB] = useState({})
   const [blessingSended, setBlessingSended] = useState({})
   const [claimList, setClaimList] = useState([])
@@ -163,17 +165,34 @@ const ClaimPage = () => {
     setAlertOpen(false)
   }
 
-  const { active, account, chainId, library } = useWeb3React()
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  async function featchAllInfoOfBlessing(provider) {
-    if (sender != '' && active && chainId != 'undefined' && typeof window.ethereum !== 'undefined') {
-      const cbContract = new ethers.Contract(cryptoBlessingAdreess(chainId), CryptoBlessing.abi, provider.getSigner())
+  async function featchAllInfoOfBlessing() {
+    if (sender != '') {
+      const cbContract = await  window.tronWeb.contract().at(cryptoBlessingAdreess());
+
       try {
-        const result = await cbContract.getAllInfoOfBlessing(sender, blessingID)
-        setBlessing(result[0])
-        setBlessingSended(result[1])
-        const claimResp = transClaimListFromWalletClaims(result[2])
+        const blessingSended = await cbContract.senderBlessingMapping(sender, blessingIndex).call();
+        console.log(blessingSended)
+        setBlessingSended(blessingSended)
+
+        let blessingClaimStatusMapping = [];
+        for (let i = 0; i < blessingSended.claimQuantity; i++){
+            try {
+                const claimStatus = await cbContract.blessingClaimStatusMapping(blessingID, i).call();
+                if (!claimStatus.used) {
+                  blessingClaimStatusMapping.push(claimStatus)
+                }
+            } catch(e) {
+                break
+            }
+            
+        }
+
+        console.log('blessingClaimStatusMapping', blessingClaimStatusMapping)
+
+
+        const claimResp = transClaimListFromWalletClaims(blessingClaimStatusMapping)
+
         setClaimList(claimResp.claims)
         setClaimedAmount(claimResp.claimedAmount)
         setLuckyClaimer(claimResp.luckyClaimer)
@@ -189,15 +208,17 @@ const ClaimPage = () => {
   const revokeBlessing = async () => {
     setRevoking(true)
 
-    // start to claim blessing
-    const provider = new ethers.providers.Web3Provider(window.ethereum)
-    const cbContract = new ethers.Contract(cryptoBlessingAdreess(chainId), CryptoBlessing.abi, provider.getSigner())
+    const cbContract = await  window.tronWeb.contract().at(cryptoBlessingAdreess());
 
     try {
-      const revokeTx = await cbContract.revokeBlessing(
+      const result = await cbContract.revokeBlessing(
         blessingSended.blessingID
-      )
-      await revokeTx.wait();
+      ).send({
+        shouldPollResponse: true
+      });
+
+      console.log(result)
+
       setRevoking(false)
     } catch (e) {
       console.log(e)
@@ -209,7 +230,7 @@ const ClaimPage = () => {
   const copyClaimLink = () => {
     const privateKey = localStorage.getItem('my_blessing_claim_key_' + blessingSended.blessingID)
 
-    navigator.clipboard.writeText(`[CryptoBlessing] ${blessingInDB.title} | ${blessingInDB.description}. Claim your TRX & blessing NFT here: https://cryptoblessing.app/claim?sender=${encode(sender)}&blessing=${encode(blessingSended.blessingID)}&key=${encode(privateKey)}`)
+    navigator.clipboard.writeText(`[CryptoBlessing] ${blessingInDB.title} | ${blessingInDB.description}. Claim your TRX & blessing NFT here: https://tron.cryptoblessing.app/claim?sender=${encode(sender)}&blessing=${encode(blessingSended.blessingID)}&key=${encode(privateKey)}&blessing_index=${blessingIndex}`)
     handleAlertOpen('Claim Link Copied!')
   }
 
@@ -217,28 +238,41 @@ const ClaimPage = () => {
     setClaiming(true)
 
     // start to claim blessing
-    const provider = new ethers.providers.Web3Provider(window.ethereum)
-    const cbContract = new ethers.Contract(cryptoBlessingAdreess(chainId), CryptoBlessing.abi, provider.getSigner())
+    const cbContract = await  window.tronWeb.contract().at(cryptoBlessingAdreess());
     
     try {
+      // fetch unused private key
+      let blessingPubkeyStatusMapping = [];
+      for (let i = 0; i < blessingSended.claimQuantity; i++){
+          try {
+              const claimStatus = await cbContract.blessingPubkeyStatusMapping(blessingID, i).call();
+              if (!claimStatus.used) {
+                blessingPubkeyStatusMapping.push(claimStatus)
+              }
+          } catch(e) {
+              break
+          }
+          
+      }
+      console.log('blessingPubkeyStatusMapping', blessingPubkeyStatusMapping)
+      
+      const unusedPublickeyRes = await fetch(`/api/blessing-sended/public_key?blessing_id=${blessingSended.blessingID}&private_key=${claimKey}&unusedPrivateKey=${blessingPubkeyStatusMapping[Math.floor(Math.random() * blessingPubkeyStatusMapping.length)].priKey}`)
+      const unusedPublicKeyJson = await unusedPublickeyRes.json()
+      console.log('unusedPublicKeyJson', unusedPublicKeyJson)
 
-      const blessingPubkeyStatus = await cbContract.getBlessingPubkeyStatus(blessingSended.blessingID)
-      const unusedKeys = blessingPubkeyStatus.filter(key => !key.used)
-      const unusedPrivateKeyRes = await fetch(`/api/blessing-sended/private_key?blessing_id=${blessingSended.blessingID}&private_key=${claimKey}&unusedPubkey=${unusedKeys[Math.floor(Math.random() * unusedKeys.length)].pubkey}`)
-      const unusedPrivateKeyJson = await unusedPrivateKeyRes.json()
 
-      const web3 = new Web3(window.ethereum);
-      const MESSAGE = web3.utils.sha3('CryptoBlessing');
-      const signature = await web3.eth.accounts.sign(MESSAGE, unusedPrivateKeyJson.data.private_key);
-
-      const claimTx = await cbContract.claimBlessing(
+      const result = await cbContract.claimBlessing(
         sender, 
         blessingSended.blessingID, 
-        toEthSignedMessageHash(web3, MESSAGE),
-        signature.signature
-      )
-      await claimTx.wait();
-      featchAllInfoOfBlessing(new ethers.providers.Web3Provider(window.ethereum))
+        unusedPublicKeyJson.data.pubkey
+      ).send({
+        feeLimit:10_000_000_000,
+        callValue:0,
+      });
+
+      console.log(result)
+
+      await featchAllInfoOfBlessing()
       setClaiming(false)
       localStorage.setItem('my_claimed_' + blessingSended.blessingID, 1)
       setClaimSuccessOpen(true)
@@ -257,48 +291,29 @@ const ClaimPage = () => {
     window.location.replace("/wallet")
   }
 
-  // useEffect(() => {
-  //   setBlessing({
-  //     image: "/images/logo.png",
-  //     description: "Crypto Blessing#Blessing is the most universal human expression of emotion, and we are NFTizing it.",
-  //   })
-  //   setBlessingSended({
-  //     tokenAmount: BigInt(0.1 * 10 ** 18),
-  //     claimQuantity: 0,
-  //     sendTimestamp: BigInt(1656544299),
-  //   })
-  //   setClaimList([])
-  //   featchAllInfoOfBlessing(new ethers.providers.Web3Provider(window.ethereum))
-
-  // // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [sender, chainId])
-
   useEffect(() => {
-    if (chainId) {
+    featchAllInfoOfBlessing()
+    setBlessingInDB({
+      image: "/images/logo.png",
+      description: "Crypto Blessing#Blessing is the most universal human expression of emotion, and we are NFTizing it.",
+    })
+    setBlessingSended({
+      tokenAmount: BigInt(0.1 * 10 ** 18),
+      claimQuantity: 0,
+      sendTimestamp: BigInt(1656544299),
+    })
+    setClaimList([])
 
-      const provider = new ethers.providers.JsonRpcProvider(getProviderUrl(chainId))
-      const cbContract = new ethers.Contract(cryptoBlessingAdreess(chainId), CryptoBlessing.abi, provider)
-      cbContract.on('claimerClaimComplete', (ret_sender, ret_blessingID) => {
-        console.log('claimerClaimComplete', ret_sender, ret_blessingID)
-        if (ret_sender == sender && ret_blessingID == blessingID) {
-          console.log('claimerClaimComplete', ret_sender, ret_blessingID)
-          featchAllInfoOfBlessing(new ethers.providers.Web3Provider(window.ethereum))
-        }
-      })
-
-      cbContract.on('senderRevokeComplete', (ret_sender, ret_blessingID) => {
-        console.log('senderRevokeComplete', ret_sender, ret_blessingID)
-        if (ret_sender == sender && ret_blessingID == blessingID) {
-          console.log('senderRevokeComplete', ret_sender, ret_blessingID)
-          blessingSended.revoked = true
-          setBlessingSended(blessingSended)
-        }
-      })
-
-      featchAllInfoOfBlessing(new ethers.providers.Web3Provider(window.ethereum))
-    }
+    var obj = setInterval(async ()=>{
+      if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+          clearInterval(obj)
+          setAccount(window.tronWeb.defaultAddress.base58)
+      }
+    }, 10)
+    
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chainId, blessingID, sender])
+  }, [sender])
+
 
   return (
     <Grid container spacing={6}>
@@ -328,13 +343,13 @@ const ClaimPage = () => {
             {blessingInDB.description}
             </Typography>
             <Stack direction="row" spacing={1}>
-              <Chip variant="outlined" color="warning" label={claimedAmount + '/' + (blessingSended && blessingSended.tokenAmount ? ethers.utils.formatEther(blessingSended.tokenAmount) : 0) + ' TRX'} icon={<TRON_ICON />} />
+              <Chip variant="outlined" color="error" label={claimedAmount + '/' + (blessingSended && blessingSended.tokenAmount ? window.tronWeb.fromSun(blessingSended.tokenAmount) : 0) + ' TRX'} icon={<TRON_ICON />} />
               <Chip variant="outlined" color="primary" label={claimList.length + '/' + (blessingSended && blessingSended.claimQuantity ? blessingSended?.claimQuantity?.toString() : 0) + ' Blessings'} icon={<AccountCircleIcon />} />
             </Stack>
           </CardContent>
           <Divider sx={{ my: 3 }}>sended at {blessingSended.sendTimestamp ? toLocaleDateFromBigInt(blessingSended.sendTimestamp) : '1970'}  by {sender ? simpleShow(sender) : 'CryptoBlessing'}</Divider>
           
-          { !active ? 
+          { !account ? 
             <Box sx={{ p: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
               <Typography  variant="button" display="block" gutterBottom color='error'>
                 You need to connect your wallet first!
@@ -416,14 +431,14 @@ const ClaimPage = () => {
               flexDirection: 'column',
             }}
             >
-            { !active ?
+            { !account ?
             <Button disabled variant='contained' sx={{ py: 2.5, width: '100%', borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
               Connect Wallet First
             </Button>
             :
             ''
             }
-            { active && sender === account && !blessingSended.revoked ?
+            { account && sender === account && !blessingSended.revoked ?
               <Stack direction="row" spacing={1}>
                 <Tooltip title="You can only revoke the amount you sended and need there is no one claimed it yet.">
                   <IconButton>
@@ -459,7 +474,7 @@ const ClaimPage = () => {
             ''
             }
 
-            { active && sender === account && blessingSended.revoked ?
+            { account && sender === account && blessingSended.revoked ?
               <Stack direction="row" spacing={1}>
                 <Tooltip title="You can only revoke the amount you sended and need there is no one claimed it yet.">
                   <IconButton>
@@ -480,7 +495,7 @@ const ClaimPage = () => {
 
 
 
-            { active && sender !== account ?
+            { account && sender !== account ?
             <Stack direction="row" spacing={1}>
               <Box sx={{ m: 1, position: 'relative' }}>
                 <Button disabled={claiming || claimKey == '' || alreadyClaimed} onClick={claimBlessing} size='large' type='submit' sx={{ mr: 2 }} variant='contained'>
